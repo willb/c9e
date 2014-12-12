@@ -44,7 +44,8 @@ Run `sbt analysis/console`.  This will set up a REPL for you with some useful im
     import org.apache.spark.rdd.RDD
     val app = new com.redhat.et.consigliere.common.ConsoleApp()
     val spark = app.context
-    import app.sqlContext._
+    val sqlc = app.sqlContext
+    import sqlc._
 
 To load the data into Spark SQL `SchemaRDD`s, use the `SosReportIngest` class:
 

@@ -72,7 +72,8 @@ object CBuild  extends Build {
         |import org.apache.spark.rdd.RDD
         |val app = new com.redhat.et.consigliere.common.ConsoleApp()
         |val spark = app.context
-        |import app.sqlContext._
+        |val sqlc = app.sqlContext
+        |import sqlc._
         |
       """.stripMargin,
     cleanupCommands in console := "spark.stop"
