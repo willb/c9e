@@ -22,7 +22,7 @@ package com.redhat.et.consigliere.common;
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 
-trait Common {
+trait AppCommon {
   private type ConfXf = SparkConf => SparkConf
   private var exitHooks: List[() => Unit] = Nil
   private var configHooks: List[ConfXf] = Nil
@@ -36,33 +36,33 @@ trait Common {
     configHooks.reverse.foldLeft(initialConf) {(c, f) => f(c)}
   }
     
-    private lazy val _context = { 
-      new SparkContext(_conf)
+  private lazy val _context = { 
+    new SparkContext(_conf)
+  }
+  
+  def master = sys.env.getOrElse("C9E_MASTER", "local[8]")
+  def appName = "consigliere"
+    
+  def main(args: Array[String]) = {
+    appMain(args)
+    runExitHooks
+  }
+    
+  def addConfig(xform: SparkConf => SparkConf) {
+    configHooks = xform :: configHooks
+  }
+    
+  def addExitHook(thunk: => Unit) {
+    exitHooks = {() => thunk} :: exitHooks
+  }
+    
+  def runExitHooks() {
+    for (hook <- exitHooks) {
+      hook()
     }
+  }
     
-    def master = sys.env.getOrElse("C9E_MASTER", "local[8]")
-    def appName = "consigliere"
-    
-    def main(args: Array[String]) = {
-      appMain(args)
-      runExitHooks
-    }
-    
-    def addConfig(xform: SparkConf => SparkConf) {
-      configHooks = xform :: configHooks
-    }
-    
-    def addExitHook(thunk: => Unit) {
-      exitHooks = {() => thunk} :: exitHooks
-    }
-    
-    def runExitHooks() {
-      for (hook <- exitHooks) {
-        hook()
-      }
-    }
-    
-    def appMain(args: Array[String]): Unit
-    
-    def context: SparkContext = _context
+  def appMain(args: Array[String]): Unit
+  
+  def context: SparkContext = _context
 }

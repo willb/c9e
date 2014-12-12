@@ -19,3 +19,8 @@
 
 package com.redhat.et.consigliere.common;
 
+trait SosIngesting {
+  self: AppCommon => 
+  
+  
+}
