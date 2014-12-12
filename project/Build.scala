@@ -49,12 +49,20 @@ object CBuild  extends Build {
     )
   )
   
+  def jsonSettings = Seq(
+    libraryDependencies ++= Seq(
+      "org.json4s" %% "json4s-jackson" % "3.2.11",
+      "org.json4s" %% "json4s-ext" % "3.2.11",
+      "joda-time" % "joda-time" % "2.5"
+    ) 
+  )
+  
   def dispatchSettings = Seq(
     libraryDependencies += 
       "net.databinder.dispatch" %% "dispatch-core" % "0.11.1"
   )
   
-  def commonSettings = baseSettings ++ sparkSettings
+  def commonSettings = baseSettings ++ sparkSettings ++ jsonSettings
   
   def analysisSettings = baseSettings ++ sparkSettings ++ breezeSettings ++ testSettings ++ Seq(
     initialCommands in console :=
