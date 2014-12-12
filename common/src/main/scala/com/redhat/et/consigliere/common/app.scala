@@ -39,6 +39,10 @@ trait AppCommon {
   private lazy val _context = { 
     new SparkContext(_conf)
   }
+
+  private lazy val _sqlContext = {
+    new org.apache.spark.sql.SQLContext(context)
+  }
   
   def master = sys.env.getOrElse("C9E_MASTER", "local[8]")
   def appName = "consigliere"
@@ -65,6 +69,8 @@ trait AppCommon {
   def appMain(args: Array[String]): Unit
   
   def context: SparkContext = _context
+
+  def sqlContext = _sqlContext
 }
 
 class ConsoleApp extends AppCommon { 
