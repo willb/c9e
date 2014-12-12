@@ -50,7 +50,7 @@ To load the data into Spark SQL `SchemaRDD`s, use the `SosReportIngest` class:
 
     val ingest = new com.redhat.et.consigliere.common.SosReportIngest("data", app)
 
-`ingest` will have several (lazy) fields, one for each record type.  You can use these as you'd expect, e.g.:
+Instead of `"data"`, use the directory you ran `sos-preprocess.py` in.  The `ingest` object will have several (lazy) fields, one for each record type.  You can use these as you'd expect, e.g.:
 
     ingest.ps.registerAsTable("ps")
     sql("select count(*) from ps").collect()
