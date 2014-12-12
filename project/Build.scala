@@ -4,9 +4,11 @@ import Keys._
 object CBuild  extends Build {
   val VERSION = "0.0.1-SNAPSHOT"
   
-  lazy val analysis = project settings(analysisSettings : _*)
-  
   lazy val common = project settings(commonSettings : _*)
+  
+  lazy val analysis = project settings(analysisSettings : _*) dependsOn(common)
+  
+  lazy val root = (project in file(".")).aggregate(common, analysis)
   
   def baseSettings = Defaults.defaultSettings ++ Seq(
     organization := "com.redhat.et",
@@ -60,8 +62,8 @@ object CBuild  extends Build {
         |import org.apache.spark.SparkConf
         |import org.apache.spark.SparkContext
         |import org.apache.spark.rdd.RDD
-        |val conf = new SparkConf().setMaster("local[8]").setAppName("analysis console").set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-        |val spark = new SparkContext(conf)
+        |val app = new com.redhat.et.consigliere.common.ConsoleApp()
+        |val spark = app.context
         |val sqlContext = new org.apache.spark.sql.SQLContext(spark)
         |import sqlContext._
         |
