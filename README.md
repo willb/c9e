@@ -1,10 +1,10 @@
 # consigliere
 
-This is the beginnings of an app to process sosreport (and possibly SAR) data from an ElasticSearch warehouse.
+This is the beginning of an app to process sosreport (and possibly SAR) data from an ElasticSearch warehouse.
 
 ## Getting the data
 
-I was able to bulk export the sosreport indices using the [elasticdump](https://github.com/taskrabbit/elasticsearch-dump) utility; if you want to do this yourself, here's how to invoke elasticdump:
+It's possible to bulk export the sosreport indices using the [elasticdump](https://github.com/taskrabbit/elasticsearch-dump) utility; if you want to do this yourself, here's how to invoke elasticdump:
 
     for month in $(seq -f "%02g" 01 12) ; do
        elasticdump --all --debug --input=http://es-perf44.perf.lab.eng.bos.redhat.com:80/vos.sosreport-2014$month --output=vos.sosreport-2014$month.json
