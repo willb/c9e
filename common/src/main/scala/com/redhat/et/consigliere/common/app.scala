@@ -66,3 +66,10 @@ trait AppCommon {
   
   def context: SparkContext = _context
 }
+
+class ConsoleApp extends AppCommon { 
+  override def appName = "console"
+  def appMain(args: Array[String]) {
+    // this is never run
+  }
+}
