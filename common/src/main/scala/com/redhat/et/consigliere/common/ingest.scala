@@ -19,8 +19,17 @@
 
 package com.redhat.et.consigliere.common;
 
-trait SosIngesting {
-  self: AppCommon => 
-  
-  
+class SosReportIngest[A <: AppCommon](dataDir: String, app: A) {
+  lazy val cmdline = app.sqlContext.jsonFile(s"$dataDir/cmdline")
+  lazy val cpuinfo = app.sqlContext.jsonFile(s"$dataDir/cpuinfo")
+  lazy val date = app.sqlContext.jsonFile(s"$dataDir/date")
+  lazy val dmidecode = app.sqlContext.jsonFile(s"$dataDir/dmidecode")
+  lazy val installedRpms = app.sqlContext.jsonFile(s"$dataDir/installed-rpms")
+  lazy val lsblk = app.sqlContext.jsonFile(s"$dataDir/lsblk")
+  lazy val lsmod = app.sqlContext.jsonFile(s"$dataDir/lsmod")
+  lazy val lspci = app.sqlContext.jsonFile(s"$dataDir/lspci")
+  lazy val meminfo = app.sqlContext.jsonFile(s"$dataDir/meminfo")
+  lazy val ps = app.sqlContext.jsonFile(s"$dataDir/ps")
+  lazy val slabinfo = app.sqlContext.jsonFile(s"$dataDir/slabinfo")
+  lazy val vmstat = app.sqlContext.jsonFile(s"$dataDir/vmstat")
 }
