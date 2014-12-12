@@ -31,6 +31,7 @@ def preproc_one_file(fn):
       with open("%s/%s" % (kind, outfn(fn, kind)), "w") as out:
         for record in by_kind[kind]:
           json.dump(record, out)
+          out.write("\n")
       
 if __name__ == '__main__':
   for f in sys.argv[1:]:
