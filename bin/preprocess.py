@@ -19,22 +19,20 @@ def preproc_one_file(fn):
     h[s['_type']].append(s)
     return h
   
-  def outfn(infn, kind, index):
-    suffix = "-%s-%d.json" % (kind, index)
-    return infn.replace(".json", suffix)
+  def outfn(infn, kind):
+    return "%s-%s" % (kind, infn)
   
   with open(fn, "r") as js:
     struct = json.load(js)
     by_kind = reduce(dd_app, struct, defaultdict(lambda: []))
     for kind in by_kind:
-      index = 0
+      print(" - writing %s records..." % kind)
       ensuredir(kind)
-      for record in by_kind[kind]:
-        with open("%s/%s" % (kind, outfn(fn, kind, index)), "w") as out:
+      with open("%s/%s" % (kind, outfn(fn, kind)), "w") as out:
+        for record in by_kind[kind]:
           json.dump(record, out)
-        index = index + 1
       
 if __name__ == '__main__':
   for f in sys.argv[1:]:
-    print "processing %s..." % f
+    print("processing %s..." % f)
     preproc_one_file(f)
