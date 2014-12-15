@@ -23,17 +23,26 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 object SosReportPreprocessor {
-  import java.io.File
+  import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
   
   def ensureDir(dirname: String): Try[String] = {
     val dir = new File(dirname)
     (dir.exists, dir.isDirectory) match {
       case (true, true) => Success(dirname)
-      case (true, false) => Failure(new RuntimeException(s"$dirname already exists but is not a directory"))
+      case (true, false) => Failure(
+	new RuntimeException(s"$dirname already exists but is not a directory")
+      )
       case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
     }
   }
-
   
+  def loadObjects(fn: String): Try[List[JValue]] = {
+    val f = new File(fn)
+    val parsedFile = Try(parse(new FileReader(f)))
+    parsedFile.map(_ match { 
+      case JArray(jls) => jls 
+      case o: JValue => List(o)
+    })
+  }
 }
