@@ -14,6 +14,8 @@ For convenience, willb has also made a tarball of the extracted indices (availab
 
 ## Preprocessing the data
 
+### Basic extraction
+
 Once you've extracted the JSON files to some directory, you can run the `sos-preprocess.py` script with the names of the JSON files as arguments.  Currently, this just splits each file by record type, but it might do more sophisticated preprocessing in the future.  You'll invoke it like this:
 
     % ../bin/sos-preprocess.py vos.sosreport-2014*.json
@@ -34,6 +36,12 @@ and the output will look something like this:
      - writing lsmod records...
      - writing vmstat records...
     ...
+
+### Extraction and cleaning
+
+A slightly more involved (and much more extensible) preprocessor is available as a command-line app.  Assuming you have your input sosreport files in `./data`, you could invoke it like this:
+
+    sbt "analysis/run-main com.redhat.et.consigliere.common.SosReportPreprocessor --output-dir $PWD/preproc --input-dir $PWD/data"
 
 ## Launching the REPL
 
