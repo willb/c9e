@@ -106,22 +106,11 @@ object DefaultTransformations extends CleaningTransformations {
 }
 
 object SosReportPreprocessor {
-  // TODO:  it would make sense to have custom case classes for these
   import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
   
-  def ensureDir(dirname: String): Try[String] = {
-    val dir = new File(dirname)
-    (dir.exists, dir.isDirectory) match {
-      case (true, true) => Success(dirname)
-      case (true, false) => Failure(
-        new RuntimeException(s"$dirname already exists but is not a directory")
-      )
-      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
-    }
-  }
-  
-  def loadObjects(fn: String): Try[List[JObject]] = {
+  // TODO:  it would make sense to have custom case classes for sosreport kinds
+  def loadObjects(fn: String): Try[List[JValue]] = {
     val f = new File(fn)
     val parsedFile = Try(parse(new FileReader(f)))
     parsedFile.map(_ match { 
@@ -146,5 +135,65 @@ object SosReportPreprocessor {
     (Map[String, Vector[JValue]]() /: jls)(partitionOne _)
   }
   
+  def main(args: Array[String]) {
+    val options = parseArgs(args)
+    options.inputFiles foreach { f => 
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      kindMap foreach { case (kind, objects) =>
+        val basename = new java.io.File(f).getName()
+        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
+        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
+        objects foreach { obj =>
+          outputWriter.println(render(obj))
+        }
+      }
+    }
+  }
   
+  case class AppOptions(inputFiles: Vector[String], outputDir: String) {
+    def withFile(f: String) = this.copy(inputFiles=inputFiles:+f)
+    def withFiles(fs: Seq[String]) = this.copy(inputFiles=inputFiles++fs)
+    def withOutputDir(d: String) = this.copy(outputDir=d)
+  }
+  
+  object AppOptions {
+    def default = AppOptions(Vector[String](), ".")
+  }
+  
+  def parseArgs(args: Array[String]) = {
+    def phelper(params: List[String], options: AppOptions): AppOptions = {
+      params match {
+        case Nil => options
+        case "--output-dir" :: dir :: rest => phelper(rest, options.withOutputDir(dir))
+        case "--input-dir" :: dir :: rest => phelper(rest, options.withFiles(listFilesInDir(dir)))
+        case "--" :: rest => options.withFiles(rest)
+        case bogusOpt if bogusOpt(0) == "-" => throw new RuntimeException(s"unrecognized option $bogusOpt")
+        case file :: rest => phelper(rest, options.withFile(file))
+      }
+    }
+    phelper(args.toList, AppOptions.default)
+  }
+  
+  def listFilesInDir(dirname: String): List[String] = {
+    val dir = new java.io.File(dirname)
+    if (dir.exists && dir.isDirectory) {
+      dir.listFiles.filter(_.isFile).toList.map(dirname + PATHSEP + _.getName.toString).filter(fn => fn.endsWith(".json"))
+    } else {
+      println(s"warning:  $dirname either does not exist or is not a directory")
+      Nil
+    }
+  }
+  
+  def ensureDir(dirname: String): Try[String] = {
+    val dir = new File(dirname)
+    (dir.exists, dir.isDirectory) match {
+      case (true, true) => Success(dirname)
+      case (true, false) => Failure(
+        new RuntimeException(s"$dirname already exists but is not a directory")
+      )
+      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
+    }
+  }
+  
+  lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
 }
