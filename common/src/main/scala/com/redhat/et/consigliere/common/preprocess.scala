@@ -148,6 +148,7 @@ object SosReportPreprocessor {
         objects foreach { obj =>
           outputWriter.println(compact(render(obj)))
         }
+        outputWriter.close()
       }
     }
   }
