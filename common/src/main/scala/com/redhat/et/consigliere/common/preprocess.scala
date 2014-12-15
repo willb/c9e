@@ -31,7 +31,7 @@ object SosReportPreprocessor {
     (dir.exists, dir.isDirectory) match {
       case (true, true) => Success(dirname)
       case (true, false) => Failure(
-	new RuntimeException(s"$dirname already exists but is not a directory")
+        new RuntimeException(s"$dirname already exists but is not a directory")
       )
       case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
     }
@@ -51,8 +51,8 @@ object SosReportPreprocessor {
     
     def partitionOne(m: Map[String, Vector[JObject]], jv: JObject) = {
       val kind = (jv \ "_type") match {
-	case JString(s) => s
-	case _ => "UNKNOWN"
+        case JString(s) => s
+        case _ => "UNKNOWN"
       }
 
       m + ((kind, m.getOrElse(kind, Vector()) :+ jv))
@@ -61,4 +61,5 @@ object SosReportPreprocessor {
     (Map[String, Vector[JObject]]() /: jls)(partitionOne _)
   }
 
+  
 }
