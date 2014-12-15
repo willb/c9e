@@ -41,7 +41,7 @@ trait CleaningHelpers {
   val dashesToCamel = "(-+([a-z]))".r
   val badChars = "(\\W)".r
   val RpmSplit = "([^\\s]+)\\s+([^\\s].*)".r
-  
+  val Cmd = "(COMMAND|cmdline)".r
   def removeBadChars(name: String) = {
     badChars.replaceAllIn(dashesToCamel.replaceAllIn(name, m => s"${(m group 2).toUpperCase}"), "")
   }
@@ -70,13 +70,31 @@ trait CleaningTransformations extends CleaningHelpers {
       JField("installedRpms", splitRpmList(list))
     }
   }
+  
+  // splits COMMAND and cmdline fields
+  val splitCmdline: FieldX = {
+    case JField(Cmd(cmd), JString(cmdline)) => JField(cmd, splitValue(cmdline))
+  }
+  
+  val splitLsblk: FieldX = {
+    // TODO: implement a sensible way to split up this data
+    case JField("lsblk", x) => JField("lsblk", x)
+  }
+
+  val splitLspci: FieldX = {
+    // TODO: implement a sensible way to split up this data
+    case JField("lspci", x) => JField("lspci", x)
+  }
 }
 
 object DefaultTransformations extends CleaningTransformations {
   val fieldTransforms = List(sanitizeNames,
     normalizeBooleans,
     splitFlags,
-    splitRpms
+    splitRpms,
+    splitCmdline,
+    splitLsblk,
+    splitLspci
   )
   
   val valueTransforms = List[ValueX]()
@@ -113,10 +131,10 @@ object SosReportPreprocessor {
     })
   }
   
-  def partitionByKinds(jls: List[JObject], xform: JObject => JObject = {x => x}): Map[String, Vector[JObject]] = {
+  def partitionByKinds(jls: List[JValue], xform: JValue => JValue = {_ \ "_source"}): Map[String, Vector[JValue]] = {
     implicit val formats = new org.json4s.DefaultFormats {}
     
-    def partitionOne(m: Map[String, Vector[JObject]], jv: JObject) = {
+    def partitionOne(m: Map[String, Vector[JValue]], jv: JValue) = {
       val kind = (jv \ "_type") match {
         case JString(s) => s
         case _ => "UNKNOWN"
@@ -125,7 +143,7 @@ object SosReportPreprocessor {
       m + ((kind, m.getOrElse(kind, Vector()) :+ xform(jv)))
     }
     
-    (Map[String, Vector[JObject]]() /: jls)(partitionOne _)
+    (Map[String, Vector[JValue]]() /: jls)(partitionOne _)
   }
   
   
