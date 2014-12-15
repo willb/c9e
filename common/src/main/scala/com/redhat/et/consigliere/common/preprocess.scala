@@ -138,13 +138,15 @@ object SosReportPreprocessor {
   def main(args: Array[String]) {
     val options = parseArgs(args)
     options.inputFiles foreach { f => 
+      Console.println(s"processing $f...")
       val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
       kindMap foreach { case (kind, objects) =>
+        Console.println(s"  - writing $kind records...")
         val basename = new java.io.File(f).getName()
         val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
         val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
         objects foreach { obj =>
-          outputWriter.println(render(obj))
+          outputWriter.println(compact(render(obj)))
         }
       }
     }
