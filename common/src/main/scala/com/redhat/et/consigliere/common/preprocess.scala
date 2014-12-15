@@ -37,12 +37,28 @@ object SosReportPreprocessor {
     }
   }
   
-  def loadObjects(fn: String): Try[List[JValue]] = {
+  def loadObjects(fn: String): Try[List[JObject]] = {
     val f = new File(fn)
     val parsedFile = Try(parse(new FileReader(f)))
     parsedFile.map(_ match { 
-      case JArray(jls) => jls 
-      case o: JValue => List(o)
+      case JArray(jls) => jls.collect { case j:JObject => j }
+      case o: JObject => List(o)
     })
   }
+
+  def partitionByKinds(jls: List[JObject]): Map[String, Vector[JObject]] = {
+    implicit val formats = new org.json4s.DefaultFormats {}
+    
+    def partitionOne(m: Map[String, Vector[JObject]], jv: JObject) = {
+      val kind = (jv \ "_type") match {
+	case JString(s) => s
+	case _ => "UNKNOWN"
+      }
+
+      m + ((kind, m.getOrElse(kind, Vector()) :+ jv))
+    }
+    
+    (Map[String, Vector[JObject]]() /: jls)(partitionOne _)
+  }
+
 }
