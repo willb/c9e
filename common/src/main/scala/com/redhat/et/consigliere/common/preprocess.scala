@@ -85,10 +85,18 @@ trait CleaningTransformations extends CleaningHelpers {
     // TODO: implement a sensible way to split up this data
     case JField("lspci", x) => JField("lspci", x)
   }
+  
+  def fieldTransforms: List[FieldX] = Nil
+  def valueTransforms: List[ValueX] = Nil
+  
+  def apply(o: JValue): JValue = {
+   val withFields = (o /: fieldTransforms)({(o, x) => o.transformField(x)})
+   (withFields /: valueTransforms)({(o, x) => o.transform(x) })
+  }
 }
 
-object DefaultTransformations extends CleaningTransformations {
-  val fieldTransforms = List(sanitizeNames,
+object SosDefaultTransformations extends CleaningTransformations {
+  override def fieldTransforms = List(sanitizeNames,
     normalizeBooleans,
     splitFlags,
     splitRpms,
@@ -97,15 +105,10 @@ object DefaultTransformations extends CleaningTransformations {
     splitLspci
   )
   
-  val valueTransforms = List[ValueX]()
-    
-  def apply(o: JValue): JValue = {
-   val withFields = (o /: fieldTransforms)({(o, x) => o.transformField(x)})
-   (withFields /: valueTransforms)({(o, x) => o.transform(x) })
-  }
+  override def valueTransforms = List[ValueX]()
 }
 
-object SosReportPreprocessor {
+trait JsonProcessing {
   import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
   
@@ -134,24 +137,11 @@ object SosReportPreprocessor {
     
     (Map[String, Vector[JValue]]() /: jls)(partitionOne _)
   }
-  
-  def main(args: Array[String]) {
-    val options = parseArgs(args)
-    options.inputFiles foreach { f => 
-      Console.println(s"processing $f...")
-      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap foreach { case (kind, objects) =>
-        Console.println(s"  - writing $kind records...")
-        val basename = new java.io.File(f).getName()
-        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
-        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
-        objects foreach { obj =>
-          outputWriter.println(compact(render(DefaultTransformations(obj))))
-        }
-        outputWriter.close()
-      }
-    }
-  }
+}
+
+trait Preprocessing {
+  import java.io.{File, FileReader, FileWriter}
+  import scala.util.{Try, Success, Failure}
   
   case class AppOptions(inputFiles: Vector[String], outputDir: String) {
     def withFile(f: String) = this.copy(inputFiles=inputFiles:+f)
@@ -199,4 +189,27 @@ object SosReportPreprocessor {
   }
   
   lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
+}
+
+object SosReportPreprocessor extends JsonProcessing with Preprocessing {
+  import java.io.{File, FileReader, FileWriter}
+  import scala.util.{Try, Success, Failure}
+  
+  def main(args: Array[String]) {
+    val options = parseArgs(args)
+    options.inputFiles foreach { f => 
+      Console.println(s"processing $f...")
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      kindMap foreach { case (kind, objects) =>
+        Console.println(s"  - writing $kind records...")
+        val basename = new java.io.File(f).getName()
+        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
+        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
+        objects foreach { obj =>
+          outputWriter.println(compact(render(SosDefaultTransformations(obj))))
+        }
+        outputWriter.close()
+      }
+    }
+  }
 }
