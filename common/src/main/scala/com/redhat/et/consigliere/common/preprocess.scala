@@ -108,6 +108,14 @@ object SosDefaultTransformations extends CleaningTransformations {
   override def valueTransforms = List[ValueX]()
 }
 
+object SarDefaultTransformations extends CleaningTransformations {
+  override def fieldTransforms = List(sanitizeNames,
+    normalizeBooleans
+  )
+  
+  override def valueTransforms = List[ValueX]()
+}
+
 trait JsonProcessing {
   import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
@@ -207,6 +215,29 @@ object SosReportPreprocessor extends JsonProcessing with Preprocessing {
         val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
         objects foreach { obj =>
           outputWriter.println(compact(render(SosDefaultTransformations(obj))))
+        }
+        outputWriter.close()
+      }
+    }
+  }
+}
+
+object SarPreprocessor extends JsonProcessing with Preprocessing {
+  import java.io.{File, FileReader, FileWriter}
+  import scala.util.{Try, Success, Failure}
+  
+  def main(args: Array[String]) {
+    val options = parseArgs(args)
+    options.inputFiles foreach { f => 
+      Console.println(s"processing $f...")
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      kindMap foreach { case (kind, objects) =>
+        Console.println(s"  - writing $kind records...")
+        val basename = new java.io.File(f).getName()
+        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
+        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
+        objects foreach { obj =>
+          outputWriter.println(compact(render(SarDefaultTransformations(obj))))
         }
         outputWriter.close()
       }
