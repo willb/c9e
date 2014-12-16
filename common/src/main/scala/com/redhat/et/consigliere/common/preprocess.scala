@@ -146,7 +146,7 @@ object SosReportPreprocessor {
         val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
         val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
         objects foreach { obj =>
-          outputWriter.println(compact(render(obj)))
+          outputWriter.println(compact(render(DefaultTransformations(obj))))
         }
         outputWriter.close()
       }
