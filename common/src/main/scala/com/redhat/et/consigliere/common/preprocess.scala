@@ -104,16 +104,12 @@ object SosDefaultTransformations extends CleaningTransformations {
     splitLsblk,
     splitLspci
   )
-  
-  override def valueTransforms = List[ValueX]()
 }
 
 object SarDefaultTransformations extends CleaningTransformations {
   override def fieldTransforms = List(sanitizeNames,
     normalizeBooleans
   )
-  
-  override def valueTransforms = List[ValueX]()
 }
 
 trait JsonProcessing {
@@ -199,48 +195,43 @@ trait Preprocessing {
   lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
 }
 
-object SosReportPreprocessor extends JsonProcessing with Preprocessing {
-  import java.io.{File, FileReader, FileWriter}
-  import scala.util.{Try, Success, Failure}
+trait GenericTransformer extends JsonProcessing with Preprocessing {
+  type KindObjects = Pair[String, Vector[JValue]]
   
-  def main(args: Array[String]) {
+  def objectTransform(jv: JValue): JValue
+  
+  // XXX: make options, f implicit?
+  def transform(options: AppOptions, f: String)(ko: KindObjects): KindObjects = ko match {
+    case (kind, objects) =>
+      Console.println(s"  - writing $kind records...")
+      val basename = new java.io.File(f).getName()
+      val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
+      val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
+      objects foreach { obj =>
+        outputWriter.println(compact(render(objectTransform(obj))))
+      }
+      outputWriter.close()
+      (kind, objects)
+  }
+  
+  def run(args: Array[String]) = {
     val options = parseArgs(args)
-    options.inputFiles foreach { f => 
+    options.inputFiles map { f => 
       Console.println(s"processing $f...")
       val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap foreach { case (kind, objects) =>
-        Console.println(s"  - writing $kind records...")
-        val basename = new java.io.File(f).getName()
-        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
-        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
-        objects foreach { obj =>
-          outputWriter.println(compact(render(SosDefaultTransformations(obj))))
-        }
-        outputWriter.close()
-      }
+      kindMap map transform(options, f)
     }
+  }
+  
+  def main(args: Array[String]) {
+    run(args)
   }
 }
 
-object SarPreprocessor extends JsonProcessing with Preprocessing {
-  import java.io.{File, FileReader, FileWriter}
-  import scala.util.{Try, Success, Failure}
-  
-  def main(args: Array[String]) {
-    val options = parseArgs(args)
-    options.inputFiles foreach { f => 
-      Console.println(s"processing $f...")
-      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap foreach { case (kind, objects) =>
-        Console.println(s"  - writing $kind records...")
-        val basename = new java.io.File(f).getName()
-        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
-        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
-        objects foreach { obj =>
-          outputWriter.println(compact(render(SarDefaultTransformations(obj))))
-        }
-        outputWriter.close()
-      }
-    }
-  }
+object SosReportPreprocessor extends GenericTransformer {
+  override def objectTransform(jv: JValue) = SosDefaultTransformations(jv)
+}
+
+object SarPreprocessor extends GenericTransformer {
+  override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
 }
