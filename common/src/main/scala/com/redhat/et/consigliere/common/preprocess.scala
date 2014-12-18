@@ -201,12 +201,13 @@ trait GenericTransformer extends JsonProcessing with Preprocessing {
   
   def objectTransform(jv: JValue): JValue = jv
   
+  
   // XXX: make options, f implicit?
   def transform(options: AppOptions, f: String)(ko: KOPair): KOPair = ko match {
     case (kind, objects) => (kind, objects.map(objectTransform(_)))
   }
 
-  def postprocess(options: AppOptions, fn: String, kom: KOMap) {
+  def postprocess(options: AppOptions, fn: String, kom: KOMap) = {
     kom.foreach { 
       case (kind, objects) => {
         Console.println(s"  - writing $kind records from $fn...")
@@ -221,18 +222,23 @@ trait GenericTransformer extends JsonProcessing with Preprocessing {
     }
   }
   
-  def run(args: Array[String]) = {
+  def run(args: Array[String]) {
     val options = parseArgs(args)
-    val koMaps = options.inputFiles.map { f => 
+    options.inputFiles.foreach { f => 
+      Console.println(s"processing $f...")
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      val kom = kindMap.map(transform(options, f))
+      postprocess(options, f, kom) 
+    }
+  }
+
+  def maprun(args: Array[String]) = {
+    val options = parseArgs(args)
+    options.inputFiles.map { f => 
       Console.println(s"processing $f...")
       val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
       kindMap.map(transform(options, f))
     }
-    (options.inputFiles.zip(koMaps)).map { 
-      case (fn: String, kom: KOMap) => 
-        postprocess(options, fn, kom) 
-    }
-    koMaps
   }
   
   def main(args: Array[String]) {
@@ -257,11 +263,10 @@ object SarConverter extends GenericTransformer {
   }
   
   override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
-  override def postprocess(options: AppOptions, fn: String, ko: KOMap) = ()
   
   def convert(args: Array[String]) = {
     implicit val formats = new org.json4s.DefaultFormats {}
-    val all = (Map[String,Vector[JValue]]() /: run(args))(join(_ ++ _, Vector()))
+    val all = (Map[String,Vector[JValue]]() /: maprun(args))(join(_ ++ _, Vector()))
     (all map { case (k, vs) => vs map (_.extract[SarRecord]) }).flatten
   }
 }
