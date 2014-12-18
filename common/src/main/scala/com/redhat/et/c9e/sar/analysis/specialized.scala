@@ -19,7 +19,7 @@
 
 package com.redhat.et.c9e.sar.analysis
 
-import com.redhat.et.c9e.sar.{SarRecord, Metadata, CpuLoad}
+import com.redhat.et.c9e.sar.{SarRecord, Metadata, CpuLoad, CpuLoadAll, Memory}
 
 // This file contains some specialized record types to facilitate analyses
 
@@ -41,6 +41,45 @@ case class CpuLoadEntry(
   user: Double
   )
 
+case class CpuLoadAllEntry(
+  nodename: String,
+  timestamp: java.util.Date,
+  cpu: String,
+  gnice: Double,
+  guest: Double,
+  idle: Double,
+  iowait: Double,
+  irq: Double,
+  nice: Double,
+  soft: Double,
+  steal: Double,
+  sys: Double,
+  usr: Double
+)
+
+case class MemoryEntry(
+  nodename: String,
+  timestamp: java.util.Date,
+  active: Int,
+  buffers: Int,
+  bufpg: Double,
+  cached: Int,
+  campg: Double,
+  commit: Int,
+  commitPercent: Double,
+  dirty: Int,
+  frmpg: Double,
+  inactive: Int,
+  memfree: Int,
+  memused: Int,
+  memusedPercent: Double,
+  swpcad: Int,
+  swpcadPercent: Double,
+  swpfree: Int,
+  swpused: Int,
+  swpusedPercent: Double
+)
+
 object CpuLoadEntry extends RecordExtracting[CpuLoadEntry] {
   def extract(sa: SarRecord) = {
     sa.cpuLoad.map { 
@@ -49,4 +88,29 @@ object CpuLoadEntry extends RecordExtracting[CpuLoadEntry] {
         CpuLoadEntry(sa._metadata.nodename, ts, cpu, idle, iowait, nice, steal, system, user)
     }
   }
+}
+
+object CpuLoadAllEntry extends RecordExtracting[CpuLoadAllEntry] {
+  def extract(sa: SarRecord) = {
+    sa.cpuLoadAll.map { 
+      case CpuLoadAll(cpu, gnice, guest, idle, iowait, irq, nice, soft, steal, system, user) => 
+        val ts = sa.timestamp
+        CpuLoadAllEntry(sa._metadata.nodename, ts, cpu, gnice.getOrElse(0), guest, idle, iowait, 
+          irq, nice, soft, steal, system, user)
+    }
+  }
+}
+
+object MemoryEntry extends RecordExtracting[MemoryEntry] {
+  def extract(sa: SarRecord) = {
+    Seq(sa.memory match { 
+      case Memory(active, buffers, bufpg, cached, campg, commit, commitPercent, 
+          dirty, frmpg, inactive, memfree, memused, memusedPercent, swpcad, 
+          swpcadPercent, swpfree, swpused, swpusedPercent) => 
+        val ts = sa.timestamp
+        MemoryEntry(sa._metadata.nodename, ts, active, buffers, bufpg, cached, campg, 
+          commit, commitPercent, dirty, frmpg, inactive, memfree, memused, memusedPercent,
+          swpcad, swpcadPercent, swpfree, swpused, swpusedPercent)
+    })
+  }  
 }
