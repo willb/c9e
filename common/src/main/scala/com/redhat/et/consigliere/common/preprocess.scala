@@ -195,7 +195,7 @@ trait Preprocessing {
   lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
 }
 
-trait GenericTransformer extends JsonProcessing with Preprocessing {
+trait GenericTransformer[Result] extends JsonProcessing with Preprocessing {
   type KOPair = Pair[String, Vector[JValue]]
   type KOMap = Map[String, Vector[JValue]]
   
@@ -206,7 +206,25 @@ trait GenericTransformer extends JsonProcessing with Preprocessing {
   def transform(options: AppOptions, f: String)(ko: KOPair): KOPair = ko match {
     case (kind, objects) => (kind, objects.map(objectTransform(_)))
   }
+  
+  def postprocess(options: AppOptions, fn: String, kom: KOMap): Result
+  
+  def run(args: Array[String]): Seq[Result] = {
+    val options = parseArgs(args)
+    options.inputFiles.map { f => 
+      Console.println(s"processing $f...")
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      val kom = kindMap.map(transform(options, f))
+      postprocess(options, f, kom) 
+    }
+  }
+  
+  def main(args: Array[String]) {
+    run(args)
+  }
+}
 
+trait InPlaceRecordPartitioner extends GenericTransformer[Unit] {
   def postprocess(options: AppOptions, fn: String, kom: KOMap) = {
     kom.foreach { 
       case (kind, objects) => {
@@ -220,41 +238,19 @@ trait GenericTransformer extends JsonProcessing with Preprocessing {
         outputWriter.close()
       }
     }
-  }
-  
-  def run(args: Array[String]) {
-    val options = parseArgs(args)
-    options.inputFiles.foreach { f => 
-      Console.println(s"processing $f...")
-      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      val kom = kindMap.map(transform(options, f))
-      postprocess(options, f, kom) 
-    }
-  }
-
-  def maprun(args: Array[String]) = {
-    val options = parseArgs(args)
-    options.inputFiles.map { f => 
-      Console.println(s"processing $f...")
-      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap.map(transform(options, f))
-    }
-  }
-  
-  def main(args: Array[String]) {
-    run(args)
+    ()
   }
 }
 
-object SosReportPreprocessor extends GenericTransformer {
+object SosReportPreprocessor extends InPlaceRecordPartitioner {
   override def objectTransform(jv: JValue) = SosDefaultTransformations(jv)
 }
 
-object SarPreprocessor extends GenericTransformer {
+object SarPreprocessor extends InPlaceRecordPartitioner {
   override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
 }
 
-object SarConverter extends GenericTransformer {
+object SarConverter extends GenericTransformer[Map[String, Vector[JValue]]] {
   import com.redhat.et.consigliere.sar.SarRecord
   
   def join[K,V](combOp: (V, V) => V, dfl: V)(left: Map[K,V], right: Map[K,V]) = {
@@ -263,10 +259,11 @@ object SarConverter extends GenericTransformer {
   }
   
   override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
+  def postprocess(options: AppOptions, fn: String, kom: KOMap) = kom
   
   def convert(args: Array[String]) = {
     implicit val formats = new org.json4s.DefaultFormats {}
-    val all = (Map[String,Vector[JValue]]() /: maprun(args))(join(_ ++ _, Vector()))
+    val all = (Map[String,Vector[JValue]]() /: run(args))(join(_ ++ _, Vector()))
     (all map { case (k, vs) => vs map (_.extract[SarRecord]) }).flatten
   }
 }
