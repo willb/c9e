@@ -25,7 +25,7 @@ import com.redhat.et.c9e.sar.{SarRecord, Metadata, CpuLoad}
 
 trait RecordExtracting[T] {
   def extract(sa: SarRecord): Seq[T]
-  def from(srs: Seq[SarRecord]): Seq[T] = 
+  def from(srs: Iterable[SarRecord]): Iterable[T] = 
     srs.flatMap(extract)
 }
 
