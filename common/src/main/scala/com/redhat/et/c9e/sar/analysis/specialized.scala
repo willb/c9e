@@ -21,6 +21,8 @@ package com.redhat.et.c9e.sar.analysis
 
 import com.redhat.et.c9e.sar.{SarRecord, Metadata, CpuLoad, CpuLoadAll, Memory}
 
+import org.apache.spark.mllib.linalg.{Vectors => V}
+
 // This file contains some specialized record types to facilitate analyses
 
 trait RecordExtracting[T] {
@@ -39,7 +41,9 @@ case class CpuLoadEntry(
   steal: Double,
   system: Double,
   user: Double
-  )
+  ) {
+    def toVec = V.dense(idle, iowait, nice, steal, system, user)
+}
 
 case class CpuLoadAllEntry(
   nodename: String,
@@ -55,7 +59,9 @@ case class CpuLoadAllEntry(
   steal: Double,
   sys: Double,
   usr: Double
-)
+) {
+  def toVec = V.dense(gnice, guest, idle, iowait, irq, nice, soft, steal, sys, usr)
+}
 
 case class MemoryEntry(
   nodename: String,
@@ -78,7 +84,11 @@ case class MemoryEntry(
   swpfree: Int,
   swpused: Int,
   swpusedPercent: Double
-)
+) {
+  def toVec = V.dense(active, buffers, bufpg, cached, campg, commit, commitPercent, 
+          dirty, frmpg, inactive, memfree, memused, memusedPercent, swpcad, 
+          swpcadPercent, swpfree, swpused, swpusedPercent)
+}
 
 object CpuLoadEntry extends RecordExtracting[CpuLoadEntry] {
   def extract(sa: SarRecord) = {
