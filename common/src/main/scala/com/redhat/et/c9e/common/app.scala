@@ -17,7 +17,7 @@
  * limitations under the License.c
  */
 
-package com.redhat.et.consigliere.common;
+package com.redhat.et.c9e.common;
 
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext

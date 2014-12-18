@@ -41,7 +41,7 @@ and the output will look something like this:
 
 A slightly more involved (and much more extensible) preprocessor is available as a command-line app.  Assuming you have your input sosreport files in `./data`, you could invoke it like this:
 
-    sbt "analysis/run-main com.redhat.et.consigliere.common.SosReportPreprocessor --output-dir $PWD/preproc --input-dir $PWD/data"
+    sbt "analysis/run-main com.redhat.et.c9e.common.SosReportPreprocessor --output-dir $PWD/preproc --input-dir $PWD/data"
 
 ## Launching the REPL
 
@@ -50,14 +50,14 @@ Run `sbt analysis/console`.  This will set up a REPL for you with some useful im
     import org.apache.spark.SparkConf
     import org.apache.spark.SparkContext
     import org.apache.spark.rdd.RDD
-    val app = new com.redhat.et.consigliere.common.ConsoleApp()
+    val app = new com.redhat.et.c9e.common.ConsoleApp()
     val spark = app.context
     val sqlc = app.sqlContext
     import sqlc._
 
 To load the data into Spark SQL `SchemaRDD`s, use the `SosReportIngest` class:
 
-    val ingest = new com.redhat.et.consigliere.common.SosReportIngest("data", app)
+    val ingest = new com.redhat.et.c9e.common.SosReportIngest("data", app)
 
 Instead of `"data"`, use the directory you ran `sos-preprocess.py` in.  The `ingest` object will have several (lazy) fields, one for each record type.  You can use these as you'd expect, e.g.:
 

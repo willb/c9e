@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package com.redhat.et.consigliere.common;
+package com.redhat.et.c9e.common;
 
 class SosReportIngest[A <: AppCommon](dataDir: String, app: A) {
   lazy val cmdline = app.sqlContext.jsonFile(s"$dataDir/cmdline")

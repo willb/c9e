@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package com.redhat.et.consigliere.common;
+package com.redhat.et.c9e.common;
 
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
@@ -252,7 +252,7 @@ object SarPreprocessor extends InPlaceRecordPartitioner {
 }
 
 object SarConverter extends GenericTransformer[Map[String, Vector[JValue]]] {
-  import com.redhat.et.consigliere.sar.SarRecord
+  import com.redhat.et.c9e.sar.SarRecord
   
   def join[K,V](combOp: (V, V) => V, dfl: V)(left: Map[K,V], right: Map[K,V]) = {
     val keys = left.keySet ++ right.keySet
