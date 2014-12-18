@@ -27,7 +27,7 @@ case class SarRecord(
   kernel: Kernel,
   memory: Memory,
   swapPages: SwapPages,
-  timestamp: Timestamp
+  timestamp: java.util.Date
 )
 
 case class Metadata(
@@ -125,5 +125,3 @@ case class Memory(
 }
 
 case class SwapPages(pswpin: Double, pswpout: Double)
-
-case class Timestamp(date: String, time: String, utc: Option[Int])

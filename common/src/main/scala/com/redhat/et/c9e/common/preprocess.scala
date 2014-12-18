@@ -86,6 +86,13 @@ trait CleaningTransformations extends CleaningHelpers {
     case JField("lspci", x) => JField("lspci", x)
   }
   
+  val timestampTidy: FieldX = {
+    case JField("timestamp", ts: JObject) =>
+      val date = ts \ "date" match { case JString(str) => str }
+      val time = ts \ "time" match { case JString(str) => str }
+      JField("timestamp", JString(date + "T" + time + "Z"))
+  }
+  
   def fieldTransforms: List[FieldX] = Nil
   def valueTransforms: List[ValueX] = Nil
   
@@ -108,7 +115,8 @@ object SosDefaultTransformations extends CleaningTransformations {
 
 object SarDefaultTransformations extends CleaningTransformations {
   override def fieldTransforms = List(sanitizeNames,
-    normalizeBooleans
+    normalizeBooleans,
+    timestampTidy
   )
 }
 
@@ -252,6 +260,8 @@ object SarPreprocessor extends InPlaceRecordPartitioner {
 }
 
 object SarConverter extends GenericTransformer[Map[String, Vector[JValue]]] {
+  implicit val formats = new org.json4s.DefaultFormats {}
+  
   import com.redhat.et.c9e.sar.SarRecord
   
   def join[K,V](combOp: (V, V) => V, dfl: V)(left: Map[K,V], right: Map[K,V]) = {
