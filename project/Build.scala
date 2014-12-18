@@ -71,6 +71,7 @@ object CBuild  extends Build {
       """
         |import org.apache.spark.SparkConf
         |import org.apache.spark.SparkContext
+        |import org.apache.spark.SparkContext._
         |import org.apache.spark.rdd.RDD
         |val app = new com.redhat.et.c9e.common.ConsoleApp()
         |val spark = app.context
