@@ -23,7 +23,11 @@ case class SarRecord(
   _metadata: Metadata,
   cpuLoad: Array[CpuLoad],
   cpuLoadAll: Array[CpuLoadAll],
-  disk: Array[Disk]
+  disk: Array[Disk],
+  kernel: Kernel,
+  memory: Memory,
+  swapPages: SwapPages,
+  timestamp: Timestamp
 )
 
 case class Metadata(
@@ -76,3 +80,50 @@ case class Disk(
   utilPercent: Double,
   wr_sec: Double
 )
+
+case class Kernel(
+  dentunusd: Int,
+  fileNr: Int,
+  inodeNr: Int,
+  ptyNr: Int
+)
+
+case class Memory(
+  active: Int,
+  buffers: Int,
+  bufpg: Double,
+  cached: Int,
+  campg: Double,
+  commit: Int,
+  commitPercent: Double,
+  dirty: Int,
+  frmpg: Double,
+  inactive: Int,
+  memfree: Int,
+  memused: Int,
+  memusedPercent: Double,
+  swpcad: Int,
+  swpcadPercent: Double,
+  swpfree: Int,
+  swpused: Int,
+  swpusedPercent: Double
+) {
+//  def this(active: Int,  buffers: Int,   bufpg: Double,   cached: Int,  campg: Double,  commit: Int,  commitPercent: Double,  dirty: Int,  frmpg: Double,  inactive: Int,  memfree: Int,  memused: Int,  memusedPercent: Double,  swpcad: Int,  swpcadPercent: Double,  swpfree: Int,  swpused: Int,  swpusedPercent: Double)
+
+  def this(buffers: Int, bufpg: Double, cached: Int, campg: Double, commit: Int,
+      commitPercent: Double, frmpg: Double, inactive: Int, memfree: Int, memused: Int,
+      memusedPercent: Double, swpcad: Int, swpcadPercent: Double, swpfree: Int, swpused: Int, 
+      swpusedPercent: Double) = 
+    this(0,buffers,bufpg,cached,campg,commit,commitPercent,0,frmpg,inactive,memfree,memused,memusedPercent,swpcad,swpcadPercent,swpfree,swpused,swpusedPercent)
+
+  def this(buffers: Int, bufpg: Double, cached: Int, campg: Double, commit: Int,
+      commitPercent: Double, frmpg: Double, memfree: Int, memused: Int,
+      memusedPercent: Double, swpcad: Int, swpcadPercent: Double, swpfree: Int, swpused: Int, 
+      swpusedPercent: Double) = 
+    this(0,buffers,bufpg,cached,campg,commit,commitPercent,0,frmpg,0,memfree,memused,memusedPercent,swpcad,swpcadPercent,swpfree,swpused,swpusedPercent)
+
+}
+
+case class SwapPages(pswpin: Double, pswpout: Double)
+
+case class Timestamp(date: String, time: String, utc: Option[Int])
