@@ -228,10 +228,11 @@ trait InPlaceRecordPartitioner extends GenericTransformer[Unit] {
   def postprocess(options: AppOptions, fn: String, kom: KOMap) = {
     kom.foreach { 
       case (kind, objects) => {
-        Console.println(s"  - writing $kind records from $fn...")
         val basename = new java.io.File(fn).getName()
         val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
         val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
+        
+        Console.println(s"  - writing $kind records from $basename...")
         objects foreach { obj =>
           outputWriter.println(compact(render(obj)))
         }
