@@ -1,6 +1,6 @@
 /*
  * This file is part of the "consigliere" toolkit for sosreport
- * data analytics and visualization.
+ * and SAR data analytics and visualization.
  *
  * Copyright (c) 2014 Red Hat, Inc.
  * 
