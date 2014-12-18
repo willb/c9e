@@ -104,16 +104,12 @@ object SosDefaultTransformations extends CleaningTransformations {
     splitLsblk,
     splitLspci
   )
-  
-  override def valueTransforms = List[ValueX]()
 }
 
 object SarDefaultTransformations extends CleaningTransformations {
   override def fieldTransforms = List(sanitizeNames,
     normalizeBooleans
   )
-  
-  override def valueTransforms = List[ValueX]()
 }
 
 trait JsonProcessing {
@@ -199,48 +195,78 @@ trait Preprocessing {
   lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
 }
 
-object SosReportPreprocessor extends JsonProcessing with Preprocessing {
-  import java.io.{File, FileReader, FileWriter}
-  import scala.util.{Try, Success, Failure}
+trait GenericTransformer extends JsonProcessing with Preprocessing {
+  type KOPair = Pair[String, Vector[JValue]]
+  type KOMap = Map[String, Vector[JValue]]
   
-  def main(args: Array[String]) {
-    val options = parseArgs(args)
-    options.inputFiles foreach { f => 
-      Console.println(s"processing $f...")
-      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap foreach { case (kind, objects) =>
-        Console.println(s"  - writing $kind records...")
-        val basename = new java.io.File(f).getName()
+  def objectTransform(jv: JValue): JValue = jv
+  
+  
+  // XXX: make options, f implicit?
+  def transform(options: AppOptions, f: String)(ko: KOPair): KOPair = ko match {
+    case (kind, objects) => (kind, objects.map(objectTransform(_)))
+  }
+
+  def postprocess(options: AppOptions, fn: String, kom: KOMap) = {
+    kom.foreach { 
+      case (kind, objects) => {
+        Console.println(s"  - writing $kind records from $fn...")
+        val basename = new java.io.File(fn).getName()
         val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
         val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
         objects foreach { obj =>
-          outputWriter.println(compact(render(SosDefaultTransformations(obj))))
+          outputWriter.println(compact(render(obj)))
         }
         outputWriter.close()
       }
     }
   }
-}
-
-object SarPreprocessor extends JsonProcessing with Preprocessing {
-  import java.io.{File, FileReader, FileWriter}
-  import scala.util.{Try, Success, Failure}
   
-  def main(args: Array[String]) {
+  def run(args: Array[String]) {
     val options = parseArgs(args)
-    options.inputFiles foreach { f => 
+    options.inputFiles.foreach { f => 
       Console.println(s"processing $f...")
       val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
-      kindMap foreach { case (kind, objects) =>
-        Console.println(s"  - writing $kind records...")
-        val basename = new java.io.File(f).getName()
-        val outputDir = ensureDir(options.outputDir + PATHSEP + kind).get
-        val outputWriter = new java.io.PrintWriter(new java.io.File(s"$outputDir/$kind-$basename"))
-        objects foreach { obj =>
-          outputWriter.println(compact(render(SarDefaultTransformations(obj))))
-        }
-        outputWriter.close()
-      }
+      val kom = kindMap.map(transform(options, f))
+      postprocess(options, f, kom) 
     }
+  }
+
+  def maprun(args: Array[String]) = {
+    val options = parseArgs(args)
+    options.inputFiles.map { f => 
+      Console.println(s"processing $f...")
+      val kindMap = loadObjects(f).map(objList => partitionByKinds(objList)).get
+      kindMap.map(transform(options, f))
+    }
+  }
+  
+  def main(args: Array[String]) {
+    run(args)
+  }
+}
+
+object SosReportPreprocessor extends GenericTransformer {
+  override def objectTransform(jv: JValue) = SosDefaultTransformations(jv)
+}
+
+object SarPreprocessor extends GenericTransformer {
+  override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
+}
+
+object SarConverter extends GenericTransformer {
+  import com.redhat.et.consigliere.sar.SarRecord
+  
+  def join[K,V](combOp: (V, V) => V, dfl: V)(left: Map[K,V], right: Map[K,V]) = {
+    val keys = left.keySet ++ right.keySet
+    (keys map {k => Pair(k, combOp(left.getOrElse(k, dfl), right.getOrElse(k, dfl)))}).toMap
+  }
+  
+  override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
+  
+  def convert(args: Array[String]) = {
+    implicit val formats = new org.json4s.DefaultFormats {}
+    val all = (Map[String,Vector[JValue]]() /: maprun(args))(join(_ ++ _, Vector()))
+    (all map { case (k, vs) => vs map (_.extract[SarRecord]) }).flatten
   }
 }
