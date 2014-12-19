@@ -35,5 +35,20 @@ class SosReportIngest[A <: AppCommon](dataDir: String, app: A) {
 }
 
 class SarIngest[A <: AppCommon](dataDir: String, app: A) {
+  import com.redhat.et.c9e.sar.analysis._
+
+  /** suitable for SQL, can be registered as a table, etc. */
   lazy val sar = app.sqlContext.jsonFile(s"$dataDir/sar")
+
+  /** raw case-class records */
+  lazy val records = SarConverter.convert(Array("--input-dir", dataDir))
+
+  /** specialized cpu load records */
+  lazy val cpuLoadEntries = app.context.parallelize(CpuLoadEntry.from(records).toSeq)
+
+  /** specialized cpu-load-all records */
+  lazy val cpuLoadAllEntries = app.context.parallelize(CpuLoadAllEntry.from(records).toSeq)
+  
+  /** specialized memory records */
+  lazy val memoryEntries = app.context.parallelize(MemoryEntry.from(records).toSeq)
 }
