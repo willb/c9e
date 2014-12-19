@@ -33,3 +33,7 @@ class SosReportIngest[A <: AppCommon](dataDir: String, app: A) {
   lazy val slabinfo = app.sqlContext.jsonFile(s"$dataDir/slabinfo")
   lazy val vmstat = app.sqlContext.jsonFile(s"$dataDir/vmstat")
 }
+
+class SarIngest[A <: AppCommon](dataDir: String, app: A) {
+  lazy val sar = app.sqlContext.jsonFile(s"$dataDir/sar")
+}
