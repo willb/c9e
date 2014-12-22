@@ -31,15 +31,19 @@ case class SarRecord(
 )
 
 case class Metadata(
-  fileDate: Option[String], 
+  fileDate: String, 
   generatedBy: String, 
   generatedByVersion: String, 
-  machine: String, 
+  machine: String,
   nodename: String, 
   numberOfCpus: Int, 
   sysdataVersion: Double, 
   sysname: String
-)
+) {
+  def this(generatedBy: String, generatedByVersion: String, nodename: String, numberOfCpus: Int, sysdataVersion: Double, sysname: String) = this("", generatedBy, generatedByVersion, "", nodename, numberOfCpus, sysdataVersion, sysname)
+  def this(nodename: String, sysname: String) = this("", "index-sar (cleaned)", "0", "", nodename, -1, 0, sysname)
+
+}
 
 
 //Array
