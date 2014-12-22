@@ -19,12 +19,52 @@
 
 package com.redhat.et.c9e.sar.analysis
 
-import com.redhat.et.c9e.common.{AppCommon, LazySarConverter}
+import com.redhat.et.c9e.common.{AppCommon, SarIngest, PathOperations}
+import org.apache.spark.mllib.feature.Normalizer
 
-object SarModeler extends AppCommon {
+object SarModeler extends AppCommon with SarCommon {
   override def appName = "sar modeler"
+
+  def ingest(args: Array[String]) = {
+    new SarIngest(args, this)
+  }
+
+  def normalizedMemory[A <: AppCommon](si: SarIngest[A]) = {
+    val nm = new Normalizer
+    val normalizedVecs = nm.transform(si.memoryEntries.map(_.toVec))
+    si.memoryEntries.map(me => Pair(me.nodename, me.timestamp)).zip(normalizedVecs)
+  }
+
   
+
   def appMain(args: Array[String]) {
-  
+    
   }
 }
+
+trait SarCommon extends PathOperations {
+  case class SarOptions(inputFiles: Vector[String], outputDir: String) {
+    def withFile(f: String) = this.copy(inputFiles=inputFiles:+f)
+    def withFiles(fs: Seq[String]) = this.copy(inputFiles=inputFiles++fs)
+    def withOutputDir(d: String) = this.copy(outputDir=d)
+  }
+  
+  object SarOptions {
+    def default = SarOptions(Vector[String](), ".")
+  }
+  
+  def parseArgs(args: Array[String]) = {
+    def phelper(params: List[String], options: SarOptions): SarOptions = {
+      params match {
+        case Nil => options
+        case "--output-dir" :: dir :: rest => phelper(rest, options.withOutputDir(dir))
+        case "--input-dir" :: dir :: rest => phelper(rest, options.withFiles(listFilesInDir(dir)))
+        case "--" :: rest => options.withFiles(rest)
+        case bogusOpt if bogusOpt(0) == "-" => throw new RuntimeException(s"unrecognized option $bogusOpt")
+        case file :: rest => phelper(rest, options.withFile(file))
+      }
+    }
+    phelper(args.toList, SarOptions.default)
+  }
+}
+
