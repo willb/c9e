@@ -31,7 +31,7 @@ case class SarRecord(
 )
 
 case class Metadata(
-  fileDate: String, 
+  fileDate: Option[String], 
   generatedBy: String, 
   generatedByVersion: String, 
   machine: String, 
