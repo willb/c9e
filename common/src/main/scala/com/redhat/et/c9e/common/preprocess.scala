@@ -134,8 +134,18 @@ trait JsonProcessing {
       case _ => List[JObject]()
     })
   }
+
+  def lazyLoadObjects(fn: String): Try[Iterator[JValue]] = {
+    val f = new File(fn)
+    val parsedFile = Try(parse(new FileReader(f)))
+    parsedFile.map(_ match { 
+      case JArray(jls) => jls.iterator.collect { case j:JObject => j }
+      case o: JObject => List(o).iterator
+      case _ => List[JObject]().iterator
+    })
+  }
   
-  def partitionByKinds(jls: List[JValue], xform: JValue => JValue = {_ \ "_source"}): Map[String, Vector[JValue]] = {
+  def partitionByKinds(jls: Iterable[JValue], xform: JValue => JValue = {_ \ "_source"}): Map[String, Vector[JValue]] = {
     implicit val formats = new org.json4s.DefaultFormats {}
     
     def partitionOne(m: Map[String, Vector[JValue]], jv: JValue) = {
@@ -217,7 +227,7 @@ trait GenericTransformer[Result] extends JsonProcessing with Preprocessing {
   
   def postprocess(options: AppOptions, fn: String, kom: KOMap): Result
   
-  def run(args: Array[String]): Seq[Result] = {
+  def run(args: Array[String]): TraversableOnce[Result] = {
     val options = parseArgs(args)
     options.inputFiles.map { f => 
       Console.println(s"processing $f...")
@@ -272,9 +282,31 @@ object SarConverter extends GenericTransformer[Map[String, Vector[JValue]]] {
   override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
   def postprocess(options: AppOptions, fn: String, kom: KOMap) = kom
   
-  def convert(args: Array[String]) = {
+  def convert(args: Array[String]): Iterable[SarRecord] = {
     implicit val formats = new org.json4s.DefaultFormats {}
     val all = (Map[String,Vector[JValue]]() /: run(args))(join(_ ++ _, Vector()))
-    (all map { case (k, vs) => vs map (_.extract[SarRecord]) }).flatten
+    (all.iterator flatMap { case (k, vs) => vs map (_.extract[SarRecord]) }).toIterable
+  }
+}
+
+
+object LazySarConverter extends JsonProcessing with Preprocessing {
+  import com.redhat.et.c9e.sar.SarRecord
+
+  type KOPair = Pair[String, Vector[JValue]]
+  type KOMap = Map[String, Vector[JValue]]
+  
+  implicit val formats = new org.json4s.DefaultFormats {}
+
+  def run(args: Array[String]): TraversableOnce[SarRecord] = {
+    val options = parseArgs(args)
+    options.inputFiles.flatMap { f => 
+      Console.println(s"processing $f...")
+      loadObjects(f).get.map {jv => SarDefaultTransformations(jv \ "_source").extract[SarRecord]}
+    }
+  }
+  
+  def main(args: Array[String]) {
+    run(args)
   }
 }

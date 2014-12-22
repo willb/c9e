@@ -41,7 +41,7 @@ class SarIngest[A <: AppCommon](dataDir: String, app: A) {
   lazy val sar = app.sqlContext.jsonFile(s"$dataDir/sar")
 
   /** raw case-class records */
-  lazy val records = SarConverter.convert(Array("--input-dir", dataDir))
+  lazy val records = LazySarConverter.run(Array("--input-dir", dataDir)).toIterable
 
   /** specialized cpu load records */
   lazy val cpuLoadEntries = app.context.parallelize(CpuLoadEntry.from(records).toSeq)

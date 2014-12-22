@@ -27,7 +27,7 @@ import org.apache.spark.mllib.linalg.{Vectors => V}
 
 trait RecordExtracting[T] {
   def extract(sa: SarRecord): Seq[T]
-  def from(srs: Iterable[SarRecord]): Iterable[T] = 
+  def from(srs: TraversableOnce[SarRecord]): TraversableOnce[T] = 
     srs.flatMap(extract)
 }
 

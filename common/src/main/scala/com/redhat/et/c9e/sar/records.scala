@@ -86,7 +86,12 @@ case class Kernel(
   fileNr: Int,
   inodeNr: Int,
   ptyNr: Int
-)
+) {
+  def this(inodeNr: Int, ptyNr: Int) = this(0, 0, inodeNr, ptyNr)
+  def this(fileNr: Int, inodeNr: Int, ptyNr: Int) = this(0, fileNr, inodeNr, ptyNr)
+  def this(dentunusd: Int) = this(dentunusd, 0, 0, 0)
+  def this() = this(-1, -1, -1, -1)
+}
 
 case class Memory(
   active: Int,
@@ -122,6 +127,15 @@ case class Memory(
       swpusedPercent: Double) = 
     this(0,buffers,bufpg,cached,campg,commit,commitPercent,0,frmpg,0,memfree,memused,memusedPercent,swpcad,swpcadPercent,swpfree,swpused,swpusedPercent)
 
+  def this(bufpg: Double, cached: Int, campg: Double, commit: Int,
+      commitPercent: Double, frmpg: Double, memfree: Int, memused: Int,
+      memusedPercent: Double, swpcad: Int, swpcadPercent: Double, swpfree: Int, swpused: Int, 
+      swpusedPercent: Double) = 
+    this(0,0,bufpg,cached,campg,commit,commitPercent,0,frmpg,0,memfree,memused,memusedPercent,swpcad,swpcadPercent,swpfree,swpused,swpusedPercent)
+  
+  def this() = this(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
 }
 
-case class SwapPages(pswpin: Double, pswpout: Double)
+case class SwapPages(pswpin: Double, pswpout: Double) {
+  def this() = this(0, 0)
+}
