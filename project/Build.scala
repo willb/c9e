@@ -32,9 +32,10 @@ object CBuild  extends Build {
   
   def sparkSettings = Seq(
     libraryDependencies ++= Seq(
-        "org.apache.spark" %% "spark-core" % sparkVersion,
-        "org.apache.spark" %% "spark-sql" % sparkVersion,
-        "org.apache.spark" %% "spark-mllib" % sparkVersion
+        "org.apache.spark" %% "spark-core" % SPARK_VERSION,
+        "org.apache.spark" %% "spark-sql" % SPARK_VERSION,
+        "org.apache.spark" %% "spark-mllib" % SPARK_VERSION,
+	"org.scala-lang" % "scala-reflect" % SCALA_VERSION
     )
   )
   
@@ -82,5 +83,6 @@ object CBuild  extends Build {
     cleanupCommands in console := "spark.stop"
   )
   
-  val sparkVersion = "1.2.0"
+  val SPARK_VERSION = "1.2.0"
+  val SCALA_VERSION = "2.10.4"
 }
