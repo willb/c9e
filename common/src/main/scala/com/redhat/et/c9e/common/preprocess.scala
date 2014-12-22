@@ -161,7 +161,35 @@ trait JsonProcessing {
   }
 }
 
-trait Preprocessing {
+trait PathOperations {
+  import java.io.File
+  import scala.util.{Try, Success, Failure}
+
+  def listFilesInDir(dirname: String): List[String] = {
+    val dir = new java.io.File(dirname)
+    if (dir.exists && dir.isDirectory) {
+      dir.listFiles.filter(_.isFile).toList.map(dirname + PATHSEP + _.getName.toString).filter(fn => fn.endsWith(".json"))
+    } else {
+      println(s"warning:  $dirname either does not exist or is not a directory")
+      Nil
+    }
+  }
+  
+  def ensureDir(dirname: String): Try[String] = {
+    val dir = new File(dirname)
+    (dir.exists, dir.isDirectory) match {
+      case (true, true) => Success(dirname)
+      case (true, false) => Failure(
+        new RuntimeException(s"$dirname already exists but is not a directory")
+      )
+      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
+    }
+  }
+  
+  lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
+}
+
+trait Preprocessing extends PathOperations {
   import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
   
@@ -187,30 +215,7 @@ trait Preprocessing {
       }
     }
     phelper(args.toList, AppOptions.default)
-  }
-  
-  def listFilesInDir(dirname: String): List[String] = {
-    val dir = new java.io.File(dirname)
-    if (dir.exists && dir.isDirectory) {
-      dir.listFiles.filter(_.isFile).toList.map(dirname + PATHSEP + _.getName.toString).filter(fn => fn.endsWith(".json"))
-    } else {
-      println(s"warning:  $dirname either does not exist or is not a directory")
-      Nil
-    }
-  }
-  
-  def ensureDir(dirname: String): Try[String] = {
-    val dir = new File(dirname)
-    (dir.exists, dir.isDirectory) match {
-      case (true, true) => Success(dirname)
-      case (true, false) => Failure(
-        new RuntimeException(s"$dirname already exists but is not a directory")
-      )
-      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
-    }
-  }
-  
-  lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
+  }  
 }
 
 trait GenericTransformer[Result] extends JsonProcessing with Preprocessing {
