@@ -20,9 +20,13 @@
 package com.redhat.et.c9e.sar.analysis
 
 import com.redhat.et.c9e.common.{AppCommon, SarIngest, PathOperations}
-import org.apache.spark.mllib.feature.Normalizer
 
 object SarModeler extends AppCommon with SarCommon {
+  import org.apache.spark.mllib.feature.Normalizer
+  import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC}
+
+  case class NR(nodename: String, timestamp: Long, kind: String, v: VEC)
+
   override def appName = "sar modeler"
 
   def ingest(args: Array[String]) = {
@@ -32,10 +36,8 @@ object SarModeler extends AppCommon with SarCommon {
   def normalizedMemory[A <: AppCommon](si: SarIngest[A]) = {
     val nm = new Normalizer
     val normalizedVecs = nm.transform(si.memoryEntries.map(_.toVec))
-    si.memoryEntries.map(me => Pair(me.nodename, me.timestamp)).zip(normalizedVecs)
+    si.memoryEntries.map(me => Pair(me.nodename, me.timestamp)).zip(normalizedVecs).map { case ((nn, ts), vecs) => NR(nn, ts.getTime, "memory", vecs) }
   }
-
-  
 
   def appMain(args: Array[String]) {
     
