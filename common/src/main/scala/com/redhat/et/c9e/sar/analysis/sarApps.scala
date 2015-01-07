@@ -23,24 +23,44 @@ import com.redhat.et.c9e.common.{AppCommon, SarIngest, PathOperations}
 
 object SarModeler extends AppCommon with SarCommon {
   import org.apache.spark.mllib.feature.Normalizer
-  import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC}
+  import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC, DenseVector}
 
-  case class NR(nodename: String, timestamp: Long, kind: String, v: VEC)
+  case class NR(nodename: String, timestamp: Long, kind: String, v: org.apache.spark.mllib.linalg.Vector)
 
   override def appName = "sar modeler"
 
-  def ingest(args: Array[String]) = {
-    new SarIngest(args, this)
+  def ingest[A <: AppCommon](args: Array[String], app: A = this) = {
+    new SarIngest(args, app)
   }
 
   def normalizedMemory[A <: AppCommon](si: SarIngest[A]) = {
     val nm = new Normalizer
     val normalizedVecs = nm.transform(si.memoryEntries.map(_.toVec))
-    si.memoryEntries.map(me => Pair(me.nodename, me.timestamp)).zip(normalizedVecs).map { case ((nn, ts), vecs) => NR(nn, ts.getTime, "memory", vecs) }
+    si.memoryEntries
+     .map(me => Pair(me.nodename, me.timestamp))
+     .zip(normalizedVecs)
+     .map { case ((nn, ts), vecs) => NR(nn, ts.getTime, "memory", vecs) }
+  }
+
+  def makeTable[A <: AppCommon](args: Array[String], app: A) = {
+    val sc = app.sqlContext
+    import sc.createSchemaRDD
+    val nm = normalizedMemory(ingest(args, app))
+    nm.registerTempTable("nm")
+    nm
+  }
+
+  def makeSchemaRDD[A <: AppCommon](args: Array[String], app: A) = {
+    val sc = app.sqlContext
+    val nm = normalizedMemory(ingest(args, app))
+    sc.createSchemaRDD(nm)
   }
 
   def appMain(args: Array[String]) {
-    
+    val sc = this.sqlContext
+    import sc.createSchemaRDD
+    val nm = makeTable(args, this)
+    nm.saveAsParquetFile("sar-parquet")
   }
 }
 

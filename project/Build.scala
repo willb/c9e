@@ -34,8 +34,10 @@ object CBuild  extends Build {
     libraryDependencies ++= Seq(
         "org.apache.spark" %% "spark-core" % SPARK_VERSION,
         "org.apache.spark" %% "spark-sql" % SPARK_VERSION,
+        "org.apache.spark" %% "spark-catalyst" % SPARK_VERSION,
+        "org.apache.spark" %% "spark-hive" % SPARK_VERSION,
         "org.apache.spark" %% "spark-mllib" % SPARK_VERSION,
-	"org.scala-lang" % "scala-reflect" % SCALA_VERSION
+        "org.scala-lang" % "scala-reflect" % SCALA_VERSION
     )
   )
   
@@ -54,8 +56,8 @@ object CBuild  extends Build {
   
   def jsonSettings = Seq(
     libraryDependencies ++= Seq(
-      "org.json4s" %% "json4s-jackson" % "3.2.11",
-      "org.json4s" %% "json4s-ext" % "3.2.11",
+      "org.json4s" %% "json4s-jackson" % "3.2.10",
+      "org.json4s" %% "json4s-ext" % "3.2.10",
       "joda-time" % "joda-time" % "2.5"
     ) 
   )
@@ -67,7 +69,7 @@ object CBuild  extends Build {
   
   def commonSettings = baseSettings ++ sparkSettings ++ jsonSettings
   
-  def analysisSettings = baseSettings ++ sparkSettings ++ breezeSettings ++ testSettings ++ Seq(
+  def analysisSettings = commonSettings ++ breezeSettings ++ testSettings ++ Seq(
     initialCommands in console :=
       """
         |import org.apache.spark.SparkConf
