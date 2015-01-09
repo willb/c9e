@@ -25,7 +25,18 @@ object SarModeler extends AppCommon with SarCommon {
   import org.apache.spark.mllib.feature.Normalizer
   import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC, DenseVector}
 
-  case class NR(nodename: String, timestamp: Long, kind: String, v: org.apache.spark.mllib.linalg.Vector)
+  case class NR(nodename: String, timestamp: Long, kind: String, v: org.apache.spark.mllib.linalg.Vector) {
+    def toCSV = {
+      val sb = new StringBuilder(nodename)
+      sb.append(",")
+      sb.append(timestamp)
+      sb.append(",")
+      sb.append(kind)
+      sb.append(",")
+      v.toArray.addString(sb, ",")
+      sb.toString
+    }
+  }
 
   override def appName = "sar modeler"
 
@@ -55,24 +66,37 @@ object SarModeler extends AppCommon with SarCommon {
     val nm = normalizedMemory(ingest(args, app))
     sc.createSchemaRDD(nm)
   }
+  
+  def loadParquetFile[A <: AppCommon](pf: String, app: A = this) = {
+    val s_rdd = app.sqlContext.parquetFile(pf)
+    val cc_rdd = s_rdd.map { row =>
+      NR(row.getAs[String](0), row.getAs[Long](1), row.getAs[String](2), row.getAs[VEC](3))
+    }
+    Pair(s_rdd, cc_rdd)
+  }
 
   def appMain(args: Array[String]) {
     val sc = this.sqlContext
+    val options = parseArgs(args)
+    
     import sc.createSchemaRDD
-    val nm = makeTable(args, this)
-    nm.saveAsParquetFile("sar-parquet")
+    
+    val nm = makeTable(options.toBasicArgs, this)
+    nm.saveAsParquetFile(options.parquetOut)
   }
 }
 
 trait SarCommon extends PathOperations {
-  case class SarOptions(inputFiles: Vector[String], outputDir: String) {
+  case class SarOptions(inputFiles: Vector[String], outputDir: String, parquetOut: String) {
     def withFile(f: String) = this.copy(inputFiles=inputFiles:+f)
     def withFiles(fs: Seq[String]) = this.copy(inputFiles=inputFiles++fs)
     def withOutputDir(d: String) = this.copy(outputDir=d)
+    def withParquetOutput(d: String) = this.copy(parquetOut=d)
+    def toBasicArgs = ("--outputDir" +: outputDir +: "--" +: inputFiles).toArray
   }
   
   object SarOptions {
-    def default = SarOptions(Vector[String](), ".")
+    def default = SarOptions(Vector[String](), ".", "sar-parquet")
   }
   
   def parseArgs(args: Array[String]) = {
@@ -81,6 +105,7 @@ trait SarCommon extends PathOperations {
         case Nil => options
         case "--output-dir" :: dir :: rest => phelper(rest, options.withOutputDir(dir))
         case "--input-dir" :: dir :: rest => phelper(rest, options.withFiles(listFilesInDir(dir)))
+        case "--parquet-out" :: loc :: rest => phelper(rest, options.withParquetOutput(loc))
         case "--" :: rest => options.withFiles(rest)
         case bogusOpt if bogusOpt(0) == "-" => throw new RuntimeException(s"unrecognized option $bogusOpt")
         case file :: rest => phelper(rest, options.withFile(file))

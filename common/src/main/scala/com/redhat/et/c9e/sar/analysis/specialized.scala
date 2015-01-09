@@ -66,24 +66,24 @@ case class CpuLoadAllEntry(
 case class MemoryEntry(
   nodename: String,
   timestamp: java.util.Date,
-  active: Int,
-  buffers: Int,
-  bufpg: Double,
-  cached: Int,
-  campg: Double,
-  commit: Int,
-  commitPercent: Double,
-  dirty: Int,
-  frmpg: Double,
-  inactive: Int,
-  memfree: Int,
-  memused: Int,
-  memusedPercent: Double,
-  swpcad: Int,
-  swpcadPercent: Double,
-  swpfree: Int,
-  swpused: Int,
-  swpusedPercent: Double
+  active: Int,            /* 1 */
+  buffers: Int,           /* 2 */
+  bufpg: Double,          /* 3 */
+  cached: Int,            /* 4 */
+  campg: Double,          /* 5 */
+  commit: Int,            /* 6 */
+  commitPercent: Double,  /* 7 */
+  dirty: Int,             /* 8 */
+  frmpg: Double,          /* 9 */
+  inactive: Int,          /* 10 */
+  memfree: Int,           /* 11 */
+  memused: Int,           /* 12 */
+  memusedPercent: Double, /* 13 */
+  swpcad: Int,            /* 14 */
+  swpcadPercent: Double,  /* 15 */
+  swpfree: Int,           /* 16 */
+  swpused: Int,           /* 17 */
+  swpusedPercent: Double  /* 18 */
 ) {
   def toVec = V.dense(active, buffers, bufpg, cached, campg, commit, commitPercent, 
           dirty, frmpg, inactive, memfree, memused, memusedPercent, swpcad, 
