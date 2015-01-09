@@ -41,7 +41,7 @@ trait AppCommon {
   }
 
   private lazy val _sqlContext = {
-    new org.apache.spark.sql.SQLContext(context)
+    new org.apache.spark.sql.hive.HiveContext(context)
   }
   
   def master = sys.env.getOrElse("C9E_MASTER", "local[8]")

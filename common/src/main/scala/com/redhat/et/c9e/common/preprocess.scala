@@ -134,8 +134,18 @@ trait JsonProcessing {
       case _ => List[JObject]()
     })
   }
+
+  def lazyLoadObjects(fn: String): Try[Iterator[JValue]] = {
+    val f = new File(fn)
+    val parsedFile = Try(parse(new FileReader(f)))
+    parsedFile.map(_ match { 
+      case JArray(jls) => jls.iterator.collect { case j:JObject => j }
+      case o: JObject => List(o).iterator
+      case _ => List[JObject]().iterator
+    })
+  }
   
-  def partitionByKinds(jls: List[JValue], xform: JValue => JValue = {_ \ "_source"}): Map[String, Vector[JValue]] = {
+  def partitionByKinds(jls: Iterable[JValue], xform: JValue => JValue = {_ \ "_source"}): Map[String, Vector[JValue]] = {
     implicit val formats = new org.json4s.DefaultFormats {}
     
     def partitionOne(m: Map[String, Vector[JValue]], jv: JValue) = {
@@ -151,7 +161,35 @@ trait JsonProcessing {
   }
 }
 
-trait Preprocessing {
+trait PathOperations {
+  import java.io.File
+  import scala.util.{Try, Success, Failure}
+
+  def listFilesInDir(dirname: String): List[String] = {
+    val dir = new java.io.File(dirname)
+    if (dir.exists && dir.isDirectory) {
+      dir.listFiles.filter(_.isFile).toList.map(dirname + PATHSEP + _.getName.toString).filter(fn => fn.endsWith(".json"))
+    } else {
+      println(s"warning:  $dirname either does not exist or is not a directory")
+      Nil
+    }
+  }
+  
+  def ensureDir(dirname: String): Try[String] = {
+    val dir = new File(dirname)
+    (dir.exists, dir.isDirectory) match {
+      case (true, true) => Success(dirname)
+      case (true, false) => Failure(
+        new RuntimeException(s"$dirname already exists but is not a directory")
+      )
+      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
+    }
+  }
+  
+  lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
+}
+
+trait Preprocessing extends PathOperations {
   import java.io.{File, FileReader, FileWriter}
   import scala.util.{Try, Success, Failure}
   
@@ -177,30 +215,7 @@ trait Preprocessing {
       }
     }
     phelper(args.toList, AppOptions.default)
-  }
-  
-  def listFilesInDir(dirname: String): List[String] = {
-    val dir = new java.io.File(dirname)
-    if (dir.exists && dir.isDirectory) {
-      dir.listFiles.filter(_.isFile).toList.map(dirname + PATHSEP + _.getName.toString).filter(fn => fn.endsWith(".json"))
-    } else {
-      println(s"warning:  $dirname either does not exist or is not a directory")
-      Nil
-    }
-  }
-  
-  def ensureDir(dirname: String): Try[String] = {
-    val dir = new File(dirname)
-    (dir.exists, dir.isDirectory) match {
-      case (true, true) => Success(dirname)
-      case (true, false) => Failure(
-        new RuntimeException(s"$dirname already exists but is not a directory")
-      )
-      case (false, _) => Try(Pair(dir.mkdirs(), dirname)._2)
-    }
-  }
-  
-  lazy val PATHSEP = java.lang.System.getProperty("file.separator").toString
+  }  
 }
 
 trait GenericTransformer[Result] extends JsonProcessing with Preprocessing {
@@ -217,7 +232,7 @@ trait GenericTransformer[Result] extends JsonProcessing with Preprocessing {
   
   def postprocess(options: AppOptions, fn: String, kom: KOMap): Result
   
-  def run(args: Array[String]): Seq[Result] = {
+  def run(args: Array[String]): TraversableOnce[Result] = {
     val options = parseArgs(args)
     options.inputFiles.map { f => 
       Console.println(s"processing $f...")
@@ -272,9 +287,31 @@ object SarConverter extends GenericTransformer[Map[String, Vector[JValue]]] {
   override def objectTransform(jv: JValue) = SarDefaultTransformations(jv)
   def postprocess(options: AppOptions, fn: String, kom: KOMap) = kom
   
-  def convert(args: Array[String]) = {
+  def convert(args: Array[String]): Iterable[SarRecord] = {
     implicit val formats = new org.json4s.DefaultFormats {}
     val all = (Map[String,Vector[JValue]]() /: run(args))(join(_ ++ _, Vector()))
-    (all map { case (k, vs) => vs map (_.extract[SarRecord]) }).flatten
+    (all.iterator flatMap { case (k, vs) => vs map (_.extract[SarRecord]) }).toIterable
+  }
+}
+
+
+object LazySarConverter extends JsonProcessing with Preprocessing {
+  import com.redhat.et.c9e.sar.SarRecord
+
+  type KOPair = Pair[String, Vector[JValue]]
+  type KOMap = Map[String, Vector[JValue]]
+  
+  implicit val formats = new org.json4s.DefaultFormats {}
+
+  def run(args: Array[String]): TraversableOnce[SarRecord] = {
+    val options = parseArgs(args)
+    options.inputFiles.flatMap { f => 
+      Console.println(s"processing $f...")
+      loadObjects(f).get.map {jv => SarDefaultTransformations(jv \ "_source").extract[SarRecord]}
+    }
+  }
+  
+  def main(args: Array[String]) {
+    run(args)
   }
 }
