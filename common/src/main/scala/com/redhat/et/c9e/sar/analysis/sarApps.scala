@@ -55,16 +55,18 @@ object SarModeler extends AppCommon with SarCommon {
 
   def makeTable[A <: AppCommon](args: Array[String], app: A) = {
     val sc = app.sqlContext
-    import sc.createSchemaRDD
-    val nm = normalizedMemory(ingest(args, app))
+    import sc.implicits._
+    
+    val nm = normalizedMemory(ingest(args, app)).toDF()
     nm.registerTempTable("nm")
     nm
   }
 
   def makeSchemaRDD[A <: AppCommon](args: Array[String], app: A) = {
     val sc = app.sqlContext
-    val nm = normalizedMemory(ingest(args, app))
-    sc.createSchemaRDD(nm)
+    import sc.implicits._
+    
+    normalizedMemory(ingest(args, app)).toDF()
   }
   
   def loadParquetFile[A <: AppCommon](pf: String, app: A = this) = {
@@ -79,9 +81,9 @@ object SarModeler extends AppCommon with SarCommon {
     val sc = this.sqlContext
     val options = parseArgs(args)
     
-    import sc.createSchemaRDD
+    import sc.implicits._
     
-    val nm = makeTable(options.toBasicArgs, this)
+    val nm = makeTable(options.toBasicArgs, this).toDF()
     nm.saveAsParquetFile(options.parquetOut)
   }
 }

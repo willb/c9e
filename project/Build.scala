@@ -18,6 +18,7 @@ object CBuild  extends Build {
       "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
       "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/",
       "Akka Repo" at "http://repo.akka.io/repository",
+      "Will's bintray" at "https://dl.bintray.com/willb/maven/",
       "spray" at "http://repo.spray.io/"
     ),
     libraryDependencies ++= Seq(
@@ -25,7 +26,8 @@ object CBuild  extends Build {
         "io.spray" %%  "spray-json" % "1.2.5",
         "org.json4s" %%  "json4s-jackson" % "3.2.6",
         "org.json4s" %% "json4s-ext" % "3.2.11",
-        "joda-time" % "joda-time" % "2.5"
+        "joda-time" % "joda-time" % "2.5",
+        "com.redhat.et" %% "silex" % "0.0.4"
     ),
     scalacOptions ++= Seq("-feature", "-Yrepl-sync", "-target:jvm-1.7", "-Xlint")
   )
@@ -58,7 +60,7 @@ object CBuild  extends Build {
     libraryDependencies ++= Seq(
       "org.json4s" %% "json4s-jackson" % "3.2.10",
       "org.json4s" %% "json4s-ext" % "3.2.10",
-      "joda-time" % "joda-time" % "2.5"
+      "joda-time" % "joda-time" % "2.7"
     ) 
   )
   
@@ -85,6 +87,6 @@ object CBuild  extends Build {
     cleanupCommands in console := "spark.stop"
   )
   
-  val SPARK_VERSION = "1.2.0"
+  val SPARK_VERSION = "1.3.1"
   val SCALA_VERSION = "2.10.4"
 }
