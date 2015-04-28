@@ -7,10 +7,8 @@ This is the beginning of an app to process sosreport (and possibly SAR) data fro
 It's possible to bulk export the sosreport indices using the [elasticdump](https://github.com/taskrabbit/elasticsearch-dump) utility; if you want to do this yourself, here's how to invoke elasticdump:
 
     for month in $(seq -f "%02g" 01 12) ; do
-       elasticdump --all --debug --input=http://es-perf44.perf.lab.eng.bos.redhat.com:80/vos.sosreport-2014$month --output=vos.sosreport-2014$month.json
+       elasticdump --all --debug --input=$ES_HOST:$ES_PORT/$INDEX_FOR_YEAR$month --output=$INDEX_FOR_YEAR$month.json
     done
-
-For convenience, willb has also made a tarball of the extracted indices (available inside RHT; ask him for a reference).
 
 ## Preprocessing the data
 
