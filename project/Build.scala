@@ -29,7 +29,7 @@ object CBuild  extends Build {
         "org.json4s" %%  "json4s-jackson" % "3.2.6",
         "org.json4s" %% "json4s-ext" % "3.2.11",
         "joda-time" % "joda-time" % "2.5",
-        "com.redhat.et" %% "silex" % "0.0.4"
+        "com.redhat.et" %% "silex" % "0.0.5"
     ),
     scalacOptions ++= Seq("-feature", "-Yrepl-sync", "-target:jvm-1.7", "-Xlint")
   )
