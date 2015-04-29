@@ -19,6 +19,8 @@
 
 package com.redhat.et.c9e.common;
 
+import com.redhat.et.silex.app.AppCommon
+
 class SosReportIngest[A <: AppCommon](dataDir: String, app: A) {
   lazy val cmdline = app.sqlContext.jsonFile(s"$dataDir/cmdline")
   lazy val cpuinfo = app.sqlContext.jsonFile(s"$dataDir/cpuinfo")

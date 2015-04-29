@@ -19,7 +19,9 @@
 
 package com.redhat.et.c9e.sar.analysis
 
-import com.redhat.et.c9e.common.{AppCommon, SarIngest, PathOperations}
+import com.redhat.et.c9e.common.{SarIngest, PathOperations}
+
+import com.redhat.et.silex.app.AppCommon
 
 object SarModeler extends AppCommon with SarCommon {
   import org.apache.spark.mllib.feature.Normalizer

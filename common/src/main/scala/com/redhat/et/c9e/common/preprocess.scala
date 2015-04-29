@@ -19,6 +19,8 @@
 
 package com.redhat.et.c9e.common;
 
+import com.redhat.et.silex.app.AppCommon
+
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
