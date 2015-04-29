@@ -8,6 +8,8 @@ object CBuild  extends Build {
   
   lazy val analysis = project settings(analysisSettings : _*) dependsOn(common)
   
+  lazy val repl = project settings(replSettings : _*) dependsOn(analysis)
+  
   lazy val root = (project in file(".")).aggregate(common, analysis)
   
   def baseSettings = Defaults.defaultSettings ++ Seq(
@@ -86,6 +88,10 @@ object CBuild  extends Build {
         |
       """.stripMargin,
     cleanupCommands in console := "spark.stop"
+  )
+  
+  def replSettings = Seq(
+    libraryDependencies += "org.scala-lang" % "jline" % SCALA_VERSION
   )
   
   val SPARK_VERSION = "1.3.1"
