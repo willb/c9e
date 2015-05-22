@@ -42,7 +42,7 @@ object CBuild  extends Build {
         "org.apache.spark" %% "spark-hive" % SPARK_VERSION,
         "org.apache.spark" %% "spark-mllib" % SPARK_VERSION,
         "org.scala-lang" % "scala-reflect" % SCALA_VERSION,
-        "org.elasticsearch" %% "elasticsearch-spark" % "2.1.0.Beta3"
+        "org.elasticsearch" %% "elasticsearch-spark" % "2.1.0.Beta4"
     )
   )
   
@@ -90,7 +90,7 @@ object CBuild  extends Build {
     cleanupCommands in console := "spark.stop"
   )
   
-  def replSettings = Seq(
+  def replSettings = analysisSettings ++ Seq(
     libraryDependencies += "org.scala-lang" % "jline" % SCALA_VERSION
   )
   
