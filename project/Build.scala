@@ -94,6 +94,6 @@ object CBuild  extends Build {
     libraryDependencies += "org.scala-lang" % "jline" % SCALA_VERSION
   )
   
-  val SPARK_VERSION = "1.3.1"
+  val SPARK_VERSION = "1.4.1"
   val SCALA_VERSION = "2.10.4"
 }
