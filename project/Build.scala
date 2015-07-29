@@ -42,7 +42,7 @@ object CBuild  extends Build {
         "org.apache.spark" %% "spark-hive" % SPARK_VERSION,
         "org.apache.spark" %% "spark-mllib" % SPARK_VERSION,
         "org.scala-lang" % "scala-reflect" % SCALA_VERSION,
-        "org.elasticsearch" %% "elasticsearch-spark" % "2.1.0.Beta4"
+        "org.elasticsearch" %% "elasticsearch-spark" % "2.1.0.rc1"
     )
   )
   

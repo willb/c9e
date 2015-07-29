@@ -28,6 +28,7 @@ object ReplApp extends ReplAppLike {
   override def makeApp = {
     val app = new ConsoleApp()
     app.addConfig { sc => sc.set("es.nodes", sys.env.getOrElse("C9E_ES_NODES", "localhost")) } 
+    app.addConfig { sc => sc.set("es.nodes.discovery", "false") }
     app
   }
 }
