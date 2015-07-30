@@ -19,42 +19,6 @@ import ClusteringRandomForestModel._
 import RandomForestClustering._
 
 object TreeModelUtils {
-
-  def loadExample(
-      sc: SparkContext,
-      dataName: String = "/home/eje/git/spark/data/mllib/sample_libsvm_data.txt") = {
-    val data = MLUtils.loadLibSVMFile(sc, dataName) 
-    // Split the data into training and test sets (30% held out for testing) 
-    val splits = data.randomSplit(Array(0.7, 0.3)) 
-    val (trainingData, testData) = (splits(0), splits(1)) 
-    // Train a RandomForest model. 
-    // Empty categoricalFeaturesInfo indicates all features are continuous. 
-    val numClasses = 2 
-    val categoricalFeaturesInfo = Map[Int, Int]() 
-    val numTrees = 3 // Use more in practice. 
-    val featureSubsetStrategy = "auto" // Let the algorithm choose. 
-    val impurity = "gini" 
-    val maxDepth = 4 
-    val maxBins = 32 
-    val model = RandomForest.trainClassifier(trainingData,
-                                             numClasses,
-                                             categoricalFeaturesInfo,
-                                             numTrees,
-                                             featureSubsetStrategy,
-                                             impurity,
-                                             maxDepth,
-                                             maxBins)
-    (model, trainingData, testData)
-  }
-
-
-  def example(sc: SparkContext): (Seq[Vector[Int]], Double) = {
-    val (model, train, test) = TreeModelUtils.loadExample(sc)
-    val trainLeafIds = model.predictLeafIds(train.map(_.features))
-    kMedoids(trainLeafIds, 3, leafIdDist, maxIterations=10)
-  }
-
-
   def predict(spark: SparkContext, numTrees: Int = 10, maxDepth: Int = 5) {
     // turn off spark logging spam in the REPL
     Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
