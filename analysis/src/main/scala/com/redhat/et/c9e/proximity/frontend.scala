@@ -23,10 +23,11 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC, DenseVector}
 
 import com.redhat.et.silex.app.AppCommon
 
-trait ProximityFrontEnd[A <: AppCommon] extends ClusterLabels {
+trait ProximityFE[A <: AppCommon] extends ClusterLabels {
   self: A =>
   
   val sqlc = sqlContext
@@ -40,6 +41,7 @@ trait ProximityFrontEnd[A <: AppCommon] extends ClusterLabels {
   
   def listRpms(df: DataFrame): RDD[(String, Array[String])] = {
     import sqlc.implicits._
+    
     val projection = df.select($"_metadata.nodename", $"installed-rpms")
     projection.map { 
       case Row(host: String, rawRpms: String) => {
@@ -49,6 +51,22 @@ trait ProximityFrontEnd[A <: AppCommon] extends ClusterLabels {
     }
   }
   
+  def featurize(df: DataFrame, rpmsForNodes: RDD[(String, Array[String])]): RDD[(String, VEC)] = {
+    import sqlc.implicits._
+    val rpmIds = context.broadcast(rpmMap(df))
+    
+    rpmsForNodes.map { 
+      case (host, rpms) =>
+	(host, featuresForNode(host, rpms, rpmIds.value))
+    }
+  }
+	    
+  
+
+  def featuresForNode(node: String, rpms: Array[String], rpmIds: Map[String, Int]) = {
+    V.sparse(rpmIds.size, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
+  }
+
   def rpmMap(df: DataFrame): Map[String, Int] = {
     import sqlc.implicits._
     val projection = df.select($"_metadata.nodename", $"installed-rpms")
@@ -75,6 +93,7 @@ trait ProximityFrontEnd[A <: AppCommon] extends ClusterLabels {
     Map(nodes(df).map { n => (n, labels(n)) } : _*)
   }
 }
+	    
 
 trait ClusterLabels {
   // these are cluster labels for supervised learning
