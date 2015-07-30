@@ -24,8 +24,13 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.rdd.RDD
 
+import com.redhat.et.silex.app.AppCommon
 
-object FrontEnd {
+trait ProximityFrontEnd[A <: AppCommon] {
+  self: A =>
+  
+  val sqlc = sqlContext
+  
   import com.redhat.et.silex.util.RegexImplicits._
 
   def nameFromRpm(rpm: String): Either[String, String] = rpm match {
@@ -33,7 +38,7 @@ object FrontEnd {
     case _ => Left(rpm)
   }
   
-  def listRpms(df: DataFrame)(implicit sqlc: SQLContext): RDD[(String, Array[String])] = {
+  def listRpms(df: DataFrame): RDD[(String, Array[String])] = {
     import sqlc.implicits._
     val projection = df.select($"_metadata.nodename", $"installed-rpms")
     projection.map { 
@@ -44,18 +49,18 @@ object FrontEnd {
     }
   }
   
-  def rpmMap(df: DataFrame)(implicit sqlc: SQLContext): Map[String, Int] = {
+  def rpmMap(df: DataFrame): Map[String, Int] = {
     import sqlc.implicits._
     val projection = df.select($"_metadata.nodename", $"installed-rpms")
     Map(projection
          .flatMap { 
            case Row(h: String, rpms: String) => rpms.split("\n").map {_.split(" ")(0)} 
           }
-          .distinct
-          .sortBy{x:String => x}
-          .collect
-          .zipWithIndex : _*)
+         .distinct
+         .sortBy{x:String => x}
+         .collect
+         .zipWithIndex : _*)
   }
   
-  // res9.select($"_metadata.nodename", $"installed-rpms").flatMap { case Row(h: String, rpms: String) => rpms.split("\n").map {_.split(" ")(0)} }.distinct.sortBy{x:String => x}
+  
 }
