@@ -21,8 +21,9 @@ package com.redhat.et.c9e.analysis.proximity;
 
 import com.redhat.et.silex.app.AppCommon
 import org.elasticsearch.spark._
+import org.elasticsearch.spark.sql._
 
-object ProxApp extends AppCommon {
+class ProxApp extends AppCommon with ProximityFE[ProxApp] with TreeModelUtils {
   addConfig { conf =>
     conf
      .set("es.nodes", sys.env.getOrElse("ES_NODES", "localhost"))
@@ -32,13 +33,14 @@ object ProxApp extends AppCommon {
   override def appName = "Machine role analysis"
 
   def appMain(args: Array[String]) {
-    args match {
-      case Array(index, indexType) =>
-        val resource = s"$index/$indexType"
-        val count = context.esRDD(resource).count()
-        Console.println(s"$resource has $count documents")
-      case _ =>
-        Console.println("usage: IndexCount index type")
-    }
+    
   }
+
+  lazy val sourceFrame = sqlc.esDF("vos.sosreport-latest/installed-rpms")
+
+  lazy val featNames = rpmMap(sourceFrame).map { case (k, v) => (v, k) }
+  lazy val nodeNames = context.parallelize(nodes(sourceFrame))
+  lazy val predictTrainData = context.parallelize(List[org.apache.spark.mllib.regression.LabeledPoint]())
 }
+
+object ProximityApp extends ProxApp {}
