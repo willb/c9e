@@ -18,20 +18,23 @@ import org.apache.spark.rdd.RDD
 import ClusteringRandomForestModel._
 import RandomForestClustering._
 
-object TreeModelUtils {
+trait TreeModelUtils {
+  // a map from each feature index to its name
+  val featNames: Map[Int, String]
+
+  // from original implementation:
+  // val raw = spark.textFile("rj_rpm_data/train.txt").map(_.split(" ").map(_.toDouble))
+  // val trainData = raw.map(x => LabeledPoint(x.head, new LADenseVec(x.tail)))
+  val predictTrainData: RDD[LabeledPoint]
+  
+  // from original implementation:
+  // val nodeNames = spark.textFile("rj_rpm_data/sortnodes.txt").map { _.split(" ")(1) }
+  val nodeNames: RDD[String]
+  
   def predict(spark: SparkContext, numTrees: Int = 10, maxDepth: Int = 5) {
     // turn off spark logging spam in the REPL
     Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
 
-    val raw = spark.textFile("/home/eje/rj_rpm_data/train.txt").map(_.split(" ").map(_.toDouble))
-    val trainData = raw.map(x => LabeledPoint(x.head, new LADenseVec(x.tail)))
-
-    // load in a map from each feature index to its name
-    val rawPairs = spark.textFile("/home/eje/rj_rpm_data/rpms.txt").map { line =>
-      val v = line.split(" ")
-      (v(0).toInt -> v(1))
-    }.collect.toSeq
-    val featNames = Map(rawPairs:_*)
 
     // largest class number is 19.0
     val numClasses = 20
@@ -42,7 +45,7 @@ object TreeModelUtils {
 
     val featureSubsetStrategy = "auto" // Let the algorithm choose.
     val impurity = "gini"
-    val model = RandomForest.trainClassifier(trainData,
+    val model = RandomForest.trainClassifier(predictTrainData,
                                              numClasses,
                                              categoricalFeaturesInfo,
                                              numTrees,
@@ -56,11 +59,11 @@ object TreeModelUtils {
     }
 
     // compute model error rate
-    val labelAndPreds = trainData.map { point =>
+    val labelAndPreds = predictTrainData.map { point =>
       val prediction = model.predict(point.features)
       (point.label, prediction)
     }
-    val err = labelAndPreds.filter(r => r._1 != r._2).count.toDouble / trainData.count
+    val err = labelAndPreds.filter(r => r._1 != r._2).count.toDouble / predictTrainData.count
     println("Error rate = " + err)    
 
     val fh = featureHist(model)
@@ -93,14 +96,7 @@ object TreeModelUtils {
 
     val realData = raw.map(x => LabeledPoint(1.0, new LADenseVec(x.tail)))
     val iidData = iid.map(x => LabeledPoint(0.0, new LADenseVec(x.tail)))
-    val trainData = new org.apache.spark.rdd.UnionRDD(spark, List(realData, iidData))
-
-    // load in a map from each feature index to its name
-    val rawPairs = spark.textFile("/home/eje/rj_rpm_data/rpms.txt").map { line =>
-      val v = line.split(" ")
-      (v(0).toInt -> v(1))
-    }.collect.toSeq
-    val featNames = Map(rawPairs:_*)
+    val trainData = realData.union(iidData)
 
     // clustering is binary classification problem
     val numClasses = 2
@@ -142,7 +138,6 @@ object TreeModelUtils {
     println(s"clusters= $clusters")
     println(s"metric= $metric")
 
-    val nodeNames = spark.textFile("/home/eje/rj_rpm_data/sortnodes.txt").map { _.split(" ")(1) }
     val nodeLeafs = nodeNames.collect.zip(leafIdData.collect)
     val mdf = (x: Vector[Int], mv: Seq[Vector[Int]]) => {
       mv.view.zipWithIndex.map { z => (leafIdDist(x, z._1), z._2) }.min
