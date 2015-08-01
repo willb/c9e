@@ -23,7 +23,7 @@ import com.redhat.et.silex.app.AppCommon
 import org.elasticsearch.spark._
 import org.elasticsearch.spark.sql._
 
-class ProxApp extends AppCommon with ProximityFE[ProxApp] with TreeModelUtils {
+class Proximity extends AppCommon with ProximityFE[Proximity] with TreeModelUtils {
   addConfig { conf =>
     conf
      .set("es.nodes", sys.env.getOrElse("ES_NODES", "localhost"))
@@ -36,11 +36,17 @@ class ProxApp extends AppCommon with ProximityFE[ProxApp] with TreeModelUtils {
     
   }
 
-  lazy val sourceFrame = sqlc.esDF("vos.sosreport-latest/installed-rpms")
+  lazy val sourceFrame = sys.env.get("ES_TEST_DATA") match {
+    case Some(file) => sqlc.parquetFile(file)
+    case None => sqlc.esDF("vos.sosreport-latest/installed-rpms")
+  }
 
   lazy val featNames = rpmMap(sourceFrame).map { case (k, v) => (v, k) }
   lazy val nodeNames = context.parallelize(nodes(sourceFrame))
   lazy val predictTrainData = context.parallelize(List[org.apache.spark.mllib.regression.LabeledPoint]())
+  lazy val rawFeatures = genRawFeatures(sourceFrame)
+
 }
 
-object ProximityApp extends ProxApp {}
+
+object ProximityApp extends Proximity {}

@@ -31,7 +31,9 @@ trait TreeModelUtils {
   // val nodeNames = spark.textFile("rj_rpm_data/sortnodes.txt").map { _.split(" ")(1) }
   val nodeNames: RDD[String]
   
-  def predict(spark: SparkContext, numTrees: Int = 10, maxDepth: Int = 5) {
+  val rawFeatures: RDD[LAVec]
+
+  def predict(numTrees: Int = 10, maxDepth: Int = 5) {
     // turn off spark logging spam in the REPL
     Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
 
@@ -91,10 +93,10 @@ trait TreeModelUtils {
     Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
 
     // all but the labels at the beginning
-    val raw = spark.textFile("/home/eje/rj_rpm_data/train.txt").map(_.split(" ").map(_.toDouble).tail)
-    val iid = iidSynthetic(raw, 250)
+    val raw = rawFeatures
+    val iid = iidSynthetic(raw.map {_.toArray}, 250)
 
-    val realData = raw.map(x => LabeledPoint(1.0, new LADenseVec(x.tail)))
+    val realData = raw.map(x => LabeledPoint(1.0, x))
     val iidData = iid.map(x => LabeledPoint(0.0, new LADenseVec(x.tail)))
     val trainData = realData.union(iidData)
 

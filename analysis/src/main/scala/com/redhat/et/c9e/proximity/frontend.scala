@@ -24,6 +24,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.linalg.{Vectors=>V, Vector=>VEC, DenseVector}
+import org.apache.spark.mllib.regression.LabeledPoint
+
 
 import com.redhat.et.silex.app.AppCommon
 
@@ -57,13 +59,26 @@ trait ProximityFE[A <: AppCommon] extends ClusterLabels {
     
     rpmsForNodes.map { 
       case (host, rpms) =>
-	(host, featuresForNode(host, rpms, rpmIds.value))
+	(host, featuresForNode(rpms, rpmIds.value))
     }
   }
   
+  def genRawFeatures(df: DataFrame): RDD[VEC] = {
+    val rpmsForNodes = listRpms(df)
+    featurize(df, rpmsForNodes)
+      .map { case (_, features) => features }
+  }
 
-  def featuresForNode(node: String, rpms: Array[String], rpmIds: Map[String, Int]) = {
-    // XXX: this is shamefully lazy
+  def labeledPoints(df: DataFrame) = {
+    val rpmsForNodes = listRpms(df)
+    
+    featurize(df, rpmsForNodes)
+      .filter { case (host, features) => labels.isDefinedAt(host) }
+      .map { case (host, features) => LabeledPoint(labels(host), features) }
+  }
+
+  def featuresForNode(rpms: Array[String], rpmIds: Map[String, Int]) = {
+    // XXX: this is shamefully lazy (or is that "shamefully eager")
     val sparse = V.sparse(rpmIds.size, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
     V.dense(sparse.toArray)
   }
