@@ -60,11 +60,12 @@ trait ProximityFE[A <: AppCommon] extends ClusterLabels {
 	(host, featuresForNode(host, rpms, rpmIds.value))
     }
   }
-	    
   
 
   def featuresForNode(node: String, rpms: Array[String], rpmIds: Map[String, Int]) = {
-    V.sparse(rpmIds.size, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
+    // XXX: this is shamefully lazy
+    val sparse = V.sparse(rpmIds.size, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
+    V.dense(sparse.toArray)
   }
 
   def rpmMap(df: DataFrame): Map[String, Int] = {
