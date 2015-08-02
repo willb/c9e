@@ -47,11 +47,12 @@ object ProximityApp extends AppCommon with java.io.Serializable {
     }
 
     val featNames = FrontEnd.rpmMap(sourceFrame).map { case (k, v) => (v, k) }
-    val nodeNames = context.parallelize(FrontEnd.nodes(sourceFrame))
+    val nodeNames = FrontEnd.allNodes(sourceFrame).distinct.cache
     val predictTrainData = FrontEnd.labeledPoints(sourceFrame)
     val rawFeatures = FrontEnd.genRawFeatures(sourceFrame)
     
     val tmu = new TreeModelUtils(featNames, predictTrainData, nodeNames, rawFeatures)
+
     tmu.cluster()
     tmu.predict()
   }

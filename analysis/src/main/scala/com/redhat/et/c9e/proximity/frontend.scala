@@ -107,6 +107,12 @@ object FrontEnd extends ClusterLabels {
       .collect { case s: String if labels.isDefinedAt(s) => s } 
   }
 
+  def allNodes(df: DataFrame): RDD[String] = {
+    df
+      .select(df("_metadata.nodename"))
+      .map { case Row(node: String) => node.toString }
+  }
+
   def labeledNodes(nodes: Array[String]): Map[String, Int] = {
     Map(
       nodes.map { 

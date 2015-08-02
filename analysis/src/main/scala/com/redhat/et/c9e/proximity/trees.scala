@@ -93,9 +93,6 @@ class TreeModelUtils(val featNames: Map[Int, String], val predictTrainData: RDD[
     val iidData = iid.map(x => LabeledPoint(0.0, new LADenseVec(x)))
     val trainData = realData.union(iidData)
 
-    realData.map { case LabeledPoint(_, vec) => vec.size }.distinct.collect.foreach { count => Console.println(s"!!! !!! found a vector of size $count in realData") }
-    iidData.map { case LabeledPoint(_, vec) => vec.size }.distinct.collect.foreach { count => Console.println(s"!!! !!! found a vector of size $count in iidData") }
-
     // clustering is binary classification problem
     val numClasses = 2
 
