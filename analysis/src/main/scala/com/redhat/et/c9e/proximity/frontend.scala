@@ -29,11 +29,7 @@ import org.apache.spark.mllib.regression.LabeledPoint
 
 import com.redhat.et.silex.app.AppCommon
 
-trait ProximityFE[A <: AppCommon] extends ClusterLabels {
-  self: A =>
-  
-  val sqlc = sqlContext
-  
+object FrontEnd extends ClusterLabels {
   import com.redhat.et.silex.util.RegexImplicits._
 
   def nameFromRpm(rpm: String): Either[String, String] = rpm match {
@@ -42,9 +38,7 @@ trait ProximityFE[A <: AppCommon] extends ClusterLabels {
   }
   
   def listRpms(df: DataFrame): RDD[(String, Array[String])] = {
-    import sqlc.implicits._
-    
-    val projection = df.select($"_metadata.nodename", $"installed-rpms")
+    val projection = df.select(df("_metadata.nodename"), df("installed-rpms"))
     projection.map { 
       case Row(host: String, rawRpms: String) => {
         val rpms = rawRpms.split("\n").map(_.split(" ")(0)).map(nameFromRpm(_)).collect { case Right(rpm) => rpm }
@@ -54,8 +48,7 @@ trait ProximityFE[A <: AppCommon] extends ClusterLabels {
   }
   
   def featurize(df: DataFrame, rpmsForNodes: RDD[(String, Array[String])]): RDD[(String, VEC)] = {
-    import sqlc.implicits._
-    val rpmIds = context.broadcast(rpmMap(df))
+    val rpmIds = rpmsForNodes.sparkContext.broadcast(rpmMap(df))
     
     rpmsForNodes.map { 
       case (host, rpms) =>
@@ -78,35 +71,48 @@ trait ProximityFE[A <: AppCommon] extends ClusterLabels {
   }
 
   def featuresForNode(rpms: Array[String], rpmIds: Map[String, Int]) = {
-    // XXX: this is shamefully lazy (or is that "shamefully eager")
-    val sparse = V.sparse(rpmIds.size, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
-    V.dense(sparse.toArray)
+//     Console.println(s"\n\n\n!!!\nrpmIds.size == ${rpmIds.size}\nrpmIds.values.max == ${rpmIds.values.max}\n!!!\n\n\n")
+
+    // XXX: this is shamefully lazy (or is that "shamefully eager?")
+//    val sparse = V.sparse(math.max(rpmIds.size, rpmIds.values.max) + 1, rpms.map(rpmIds(_)), Array.fill(rpms.size)(1.0))
+    val arr = Array.fill(rpmIds.size)(0.0)
+    for (rpm <- rpms) {
+      arr(rpmIds(rpm)) = 1.0
+    }
+
+    V.dense(arr)
+  }
+
+  def allRpms(df: DataFrame): Array[String] = {
+    val projection = df.select(df("_metadata.nodename"), df("installed-rpms"))
+    projection
+      .flatMap { 
+	case Row(h: String, rpms: String) => rpms.split("\n").map {_.split(" ")(0)}.map { x => nameFromRpm(x) }.collect { case Right(rpm) => rpm } 
+      }
+      .distinct
+      .sortBy { x: String => x }
+      .collect
   }
 
   def rpmMap(df: DataFrame): Map[String, Int] = {
-    import sqlc.implicits._
-    val projection = df.select($"_metadata.nodename", $"installed-rpms")
-    Map(projection
-         .flatMap { 
-           case Row(h: String, rpms: String) => rpms.split("\n").map {_.split(" ")(0)} 
-          }
-         .distinct
-         .sortBy{x:String => x}
-         .collect
+    Map( allRpms(df)
          .zipWithIndex : _*)
   }
   
   def nodes(df: DataFrame): Seq[String] = {
-    import sqlc.implicits._
     df
-      .select($"_metadata.nodename")
+      .select(df("_metadata.nodename"))
       .map { case Row(node: String) => node.toString }
       .collect()
       .collect { case s: String if labels.isDefinedAt(s) => s } 
   }
 
-  def labeledNodes(df: DataFrame): Map[String, Int] = {
-    Map(nodes(df).map { n => (n, labels(n)) } : _*)
+  def labeledNodes(nodes: Array[String]): Map[String, Int] = {
+    Map(
+      nodes.map { 
+	n => (n, labels(n)) 
+      } : _*
+    )
   }
 }
 	    

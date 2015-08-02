@@ -18,20 +18,13 @@ import org.apache.spark.rdd.RDD
 import ClusteringRandomForestModel._
 import RandomForestClustering._
 
-trait TreeModelUtils {
-  // a map from each feature index to its name
-  val featNames: Map[Int, String]
-
+class TreeModelUtils(val featNames: Map[Int, String], val predictTrainData: RDD[LabeledPoint], val nodeNames: RDD[String], val rawFeatures: RDD[LAVec]) {
   // from original implementation:
   // val raw = spark.textFile("rj_rpm_data/train.txt").map(_.split(" ").map(_.toDouble))
   // val trainData = raw.map(x => LabeledPoint(x.head, new LADenseVec(x.tail)))
-  val predictTrainData: RDD[LabeledPoint]
   
   // from original implementation:
   // val nodeNames = spark.textFile("rj_rpm_data/sortnodes.txt").map { _.split(" ")(1) }
-  val nodeNames: RDD[String]
-  
-  val rawFeatures: RDD[LAVec]
 
   def predict(numTrees: Int = 10, maxDepth: Int = 5) {
     // turn off spark logging spam in the REPL
@@ -88,7 +81,7 @@ trait TreeModelUtils {
   }
 
 
-  def cluster(spark: SparkContext, numTrees: Int = 10, maxDepth: Int = 5, nClust: Int = 5, outlierThreshold: Double = 3.0) {
+  def cluster(numTrees: Int = 10, maxDepth: Int = 5, nClust: Int = 5, outlierThreshold: Double = 3.0) {
     // turn off spark logging spam in the REPL
     Logger.getRootLogger().getAppender("console").asInstanceOf[ConsoleAppender].setThreshold(Level.WARN)
 
@@ -97,8 +90,11 @@ trait TreeModelUtils {
     val iid = iidSynthetic(raw.map {_.toArray}, 250)
 
     val realData = raw.map(x => LabeledPoint(1.0, x))
-    val iidData = iid.map(x => LabeledPoint(0.0, new LADenseVec(x.tail)))
+    val iidData = iid.map(x => LabeledPoint(0.0, new LADenseVec(x)))
     val trainData = realData.union(iidData)
+
+    realData.map { case LabeledPoint(_, vec) => vec.size }.distinct.collect.foreach { count => Console.println(s"!!! !!! found a vector of size $count in realData") }
+    iidData.map { case LabeledPoint(_, vec) => vec.size }.distinct.collect.foreach { count => Console.println(s"!!! !!! found a vector of size $count in iidData") }
 
     // clustering is binary classification problem
     val numClasses = 2

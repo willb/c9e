@@ -20,33 +20,39 @@
 package com.redhat.et.c9e.analysis.proximity;
 
 import com.redhat.et.silex.app.AppCommon
+
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SQLContext
+
 import org.elasticsearch.spark._
 import org.elasticsearch.spark.sql._
 
-class Proximity extends AppCommon with ProximityFE[Proximity] with TreeModelUtils {
+object ProximityApp extends AppCommon with java.io.Serializable {
   addConfig { conf =>
     conf
      .set("es.nodes", sys.env.getOrElse("ES_NODES", "localhost"))
      .set("es.nodes.discovery", "false")
   }
 
-  override def appName = "Machine role analysis"
+  def appName = "Machine role analysis"
 
   def appMain(args: Array[String]) {
+    val sourceFrame = sys.env.get("ES_TEST_DATA") match {
+      case Some(file) => sqlContext.parquetFile(file)
+      case None => sqlContext.esDF("vos.sosreport-latest/installed-rpms")
+    }
+
+    FrontEnd.rpmMap(sourceFrame).foreach {
+      case (k, v) => Console.println(s"$k --> $v")
+    }
+
+    val featNames = FrontEnd.rpmMap(sourceFrame).map { case (k, v) => (v, k) }
+    val nodeNames = context.parallelize(FrontEnd.nodes(sourceFrame))
+    val predictTrainData = FrontEnd.labeledPoints(sourceFrame)
+    val rawFeatures = FrontEnd.genRawFeatures(sourceFrame)
     
+    val tmu = new TreeModelUtils(featNames, predictTrainData, nodeNames, rawFeatures)
+    tmu.cluster()
+    tmu.predict()
   }
-
-  lazy val sourceFrame = sys.env.get("ES_TEST_DATA") match {
-    case Some(file) => sqlc.parquetFile(file)
-    case None => sqlc.esDF("vos.sosreport-latest/installed-rpms")
-  }
-
-  lazy val featNames = rpmMap(sourceFrame).map { case (k, v) => (v, k) }
-  lazy val nodeNames = context.parallelize(nodes(sourceFrame))
-  lazy val predictTrainData = context.parallelize(List[org.apache.spark.mllib.regression.LabeledPoint]())
-  lazy val rawFeatures = genRawFeatures(sourceFrame)
-
 }
-
-
-object ProximityApp extends Proximity {}
