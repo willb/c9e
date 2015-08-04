@@ -27,7 +27,15 @@ import org.apache.spark.sql.SQLContext
 import org.elasticsearch.spark._
 import org.elasticsearch.spark.sql._
 
+
+import org.apache.log4j._
+
 object ProximityApp extends AppCommon with java.io.Serializable {
+  import org.apache.log4j._
+
+  Logger.getLogger("org").setLevel(Level.OFF)
+  Logger.getLogger("akka").setLevel(Level.OFF)
+
   addConfig { conf =>
     conf
      .set("es.nodes", sys.env.getOrElse("ES_NODES", "localhost"))
@@ -36,14 +44,20 @@ object ProximityApp extends AppCommon with java.io.Serializable {
 
   def appName = "Machine role analysis"
 
+  def disableLogging() {
+    import collection.JavaConversions._
+
+    val loggers = LogManager.getRootLogger() :: (LogManager.getCurrentLoggers().toList)
+    loggers.foreach { _.asInstanceOf[Logger].setLevel(Level.OFF) }
+  }
+
   def appMain(args: Array[String]) {
+
+    disableLogging()
+
     val sourceFrame = sys.env.get("ES_TEST_DATA") match {
       case Some(file) => sqlContext.parquetFile(file)
       case None => sqlContext.esDF("vos.sosreport-201504/installed-rpms")
-    }
-
-    FrontEnd.rpmMap(sourceFrame).foreach {
-      case (k, v) => Console.println(s"$k --> $v")
     }
 
     val featNames = FrontEnd.rpmMap(sourceFrame).map { case (k, v) => (v, k) }
