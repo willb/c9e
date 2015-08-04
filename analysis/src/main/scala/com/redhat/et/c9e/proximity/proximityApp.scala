@@ -55,9 +55,11 @@ object ProximityApp extends AppCommon with java.io.Serializable {
 
     disableLogging()
 
+    val sourceDoc = sys.env.getOrElse("ES_DOC", "vos.sosreport-201504/installed-rpms")
+
     val sourceFrame = sys.env.get("ES_TEST_DATA") match {
       case Some(file) => sqlContext.parquetFile(file)
-      case None => sqlContext.esDF("vos.sosreport-201504/installed-rpms")
+      case None => sqlContext.esDF(sourceDoc)
     }
 
     val featNames = FrontEnd.rpmMap(sourceFrame).map { case (k, v) => (v, k) }
