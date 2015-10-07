@@ -29,7 +29,7 @@ object CBuild  extends Build {
         "org.json4s" %%  "json4s-jackson" % "3.2.6",
         "org.json4s" %% "json4s-ext" % "3.2.11",
         "joda-time" % "joda-time" % "2.5",
-        "com.redhat.et" %% "silex" % "0.0.5"
+        "com.redhat.et" %% "silex" % "0.0.7"
     ),
     scalacOptions ++= Seq("-feature", "-Yrepl-sync", "-target:jvm-1.7", "-Xlint")
   )
@@ -94,6 +94,6 @@ object CBuild  extends Build {
     libraryDependencies += "org.scala-lang" % "jline" % SCALA_VERSION
   )
   
-  val SPARK_VERSION = "1.4.1"
+  val SPARK_VERSION = "1.5.1"
   val SCALA_VERSION = "2.10.4"
 }
